@@ -575,23 +575,23 @@ pub struct MovementData {
     pub option_flags: String,
     #[serde(rename = "Stance")]
     pub stance: String,
-    #[serde(rename = "State", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "State")]
     pub state: Option<InterpretedMotionState>,
     #[serde(rename = "StickyObject")]
     pub sticky_object: u32,
     #[serde(rename = "Target")]
     pub target: u32,
-    #[serde(rename = "Origin", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "Origin")]
     pub origin: Option<serde_json::Value>,
-    #[serde(rename = "MoveToParams", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "MoveToParams")]
     pub move_to_params: Option<serde_json::Value>,
-    #[serde(rename = "MyRunRate")]
+    #[serde(rename = "MyRunRate", serialize_with = "crate::serialization::serialize_f32")]
     pub my_run_rate: f32,
     #[serde(rename = "TargetId")]
     pub target_id: u32,
-    #[serde(rename = "DesiredHeading")]
+    #[serde(rename = "DesiredHeading", serialize_with = "crate::serialization::serialize_f32")]
     pub desired_heading: f32,
-    #[serde(rename = "TurnToParams", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "TurnToParams")]
     pub turn_to_params: Option<serde_json::Value>,
 }
 
@@ -607,11 +607,11 @@ pub struct InterpretedMotionState {
     pub sidestep_command: u32,
     #[serde(rename = "TurnCommand")]
     pub turn_command: u32,
-    #[serde(rename = "ForwardSpeed")]
+    #[serde(rename = "ForwardSpeed", serialize_with = "crate::serialization::serialize_f32")]
     pub forward_speed: f32,
-    #[serde(rename = "SidestepSpeed")]
+    #[serde(rename = "SidestepSpeed", serialize_with = "crate::serialization::serialize_f32")]
     pub sidestep_speed: f32,
-    #[serde(rename = "TurnSpeed")]
+    #[serde(rename = "TurnSpeed", serialize_with = "crate::serialization::serialize_f32")]
     pub turn_speed: f32,
     #[serde(rename = "Commands")]
     pub commands: Vec<serde_json::Value>,
@@ -1220,26 +1220,26 @@ pub struct ItemSetAppraiseInfo {
     pub dataid_properties: HashMap<String, u32>,
     #[serde(rename = "SpellBook")]
     pub spell_book: Vec<properties::LayeredSpellId>,
-    #[serde(rename = "ArmorProfile", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "ArmorProfile")]
     pub armor_profile: Option<ArmorProfile>,
-    #[serde(rename = "CreatureProfile", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "CreatureProfile")]
     pub creature_profile: Option<CreatureProfile>,
-    #[serde(rename = "WeaponProfile", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "WeaponProfile")]
     pub weapon_profile: Option<WeaponProfile>,
-    #[serde(rename = "HookProfile", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "HookProfile")]
     pub hook_profile: Option<HookProfile>,
     #[serde(rename = "ArmorHighlight")]
-    pub armor_highlight: u16,
+    pub armor_highlight: serde_json::Value,
     #[serde(rename = "ArmorColor")]
-    pub armor_color: u16,
+    pub armor_color: serde_json::Value,
     #[serde(rename = "WeaponHighlight")]
-    pub weapon_highlight: u16,
+    pub weapon_highlight: serde_json::Value,
     #[serde(rename = "WeaponColor")]
-    pub weapon_color: u16,
+    pub weapon_color: serde_json::Value,
     #[serde(rename = "ResistHighlight")]
-    pub resist_highlight: u16,
+    pub resist_highlight: serde_json::Value,
     #[serde(rename = "ResistColor")]
-    pub resist_color: u16,
+    pub resist_color: serde_json::Value,
     #[serde(rename = "BaseArmorHead")]
     pub base_armor_head: u32,
     #[serde(rename = "BaseArmorChest")]
@@ -1358,25 +1358,40 @@ impl ItemSetAppraiseInfo {
             None
         };
 
+        // Helper to convert highlight mask to JSON value (0 for zero, string for non-zero)
+        fn highlight_to_json(value: u16, f: fn(u16) -> String) -> serde_json::Value {
+            if value == 0 {
+                serde_json::Value::Number(0.into())
+            } else {
+                serde_json::Value::String(f(value))
+            }
+        }
+
         // ArmorEnchRating (0x0200)
         let (armor_highlight, armor_color) = if flags & appraisal_flags::ARMOR_ENCH_RATING != 0 {
-            (reader.read_u16()?, reader.read_u16()?)
+            let ah = reader.read_u16()?;
+            let ac = reader.read_u16()?;
+            (highlight_to_json(ah, properties::armor_highlight_mask_name), highlight_to_json(ac, properties::armor_highlight_mask_name))
         } else {
-            (0, 0)
+            (serde_json::Value::Number(0.into()), serde_json::Value::Number(0.into()))
         };
 
         // WeaponEnchRating (0x0800)
         let (weapon_highlight, weapon_color) = if flags & appraisal_flags::WEAPON_ENCH_RATING != 0 {
-            (reader.read_u16()?, reader.read_u16()?)
+            let wh = reader.read_u16()?;
+            let wc = reader.read_u16()?;
+            (highlight_to_json(wh, properties::weapon_highlight_mask_name), highlight_to_json(wc, properties::weapon_highlight_mask_name))
         } else {
-            (0, 0)
+            (serde_json::Value::Number(0.into()), serde_json::Value::Number(0.into()))
         };
 
         // ResistEnchRating (0x0400)
         let (resist_highlight, resist_color) = if flags & appraisal_flags::RESIST_ENCH_RATING != 0 {
-            (reader.read_u16()?, reader.read_u16()?)
+            let rh = reader.read_u16()?;
+            let rc = reader.read_u16()?;
+            (highlight_to_json(rh, properties::resist_highlight_mask_name), highlight_to_json(rc, properties::resist_highlight_mask_name))
         } else {
-            (0, 0)
+            (serde_json::Value::Number(0.into()), serde_json::Value::Number(0.into()))
         };
 
         // BaseArmor (0x4000)

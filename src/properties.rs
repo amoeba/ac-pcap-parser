@@ -25,21 +25,21 @@ pub mod appraisal_flags {
 /// ArmorProfile for protection values
 #[derive(Debug, Clone, Serialize)]
 pub struct ArmorProfile {
-    #[serde(rename = "ProtSlashing")]
+    #[serde(rename = "ProtSlashing", serialize_with = "crate::serialization::serialize_f32")]
     pub prot_slashing: f32,
-    #[serde(rename = "ProtPiercing")]
+    #[serde(rename = "ProtPiercing", serialize_with = "crate::serialization::serialize_f32")]
     pub prot_piercing: f32,
-    #[serde(rename = "ProtBludgeoning")]
+    #[serde(rename = "ProtBludgeoning", serialize_with = "crate::serialization::serialize_f32")]
     pub prot_bludgeoning: f32,
-    #[serde(rename = "ProtCold")]
+    #[serde(rename = "ProtCold", serialize_with = "crate::serialization::serialize_f32")]
     pub prot_cold: f32,
-    #[serde(rename = "ProtFire")]
+    #[serde(rename = "ProtFire", serialize_with = "crate::serialization::serialize_f32")]
     pub prot_fire: f32,
-    #[serde(rename = "ProtAcid")]
+    #[serde(rename = "ProtAcid", serialize_with = "crate::serialization::serialize_f32")]
     pub prot_acid: f32,
-    #[serde(rename = "ProtNether")]
+    #[serde(rename = "ProtNether", serialize_with = "crate::serialization::serialize_f32")]
     pub prot_nether: f32,
-    #[serde(rename = "ProtLightning")]
+    #[serde(rename = "ProtLightning", serialize_with = "crate::serialization::serialize_f32")]
     pub prot_lightning: f32,
 }
 
@@ -69,15 +69,15 @@ pub struct WeaponProfile {
     pub weapon_skill: u32,
     #[serde(rename = "WeaponDamage")]
     pub weapon_damage: u32,
-    #[serde(rename = "DamageVariance")]
+    #[serde(rename = "DamageVariance", serialize_with = "crate::serialization::serialize_f64")]
     pub damage_variance: f64,
-    #[serde(rename = "DamageMod")]
+    #[serde(rename = "DamageMod", serialize_with = "crate::serialization::serialize_f64")]
     pub damage_mod: f64,
-    #[serde(rename = "WeaponLength")]
+    #[serde(rename = "WeaponLength", serialize_with = "crate::serialization::serialize_f64")]
     pub weapon_length: f64,
-    #[serde(rename = "MaxVelocity")]
+    #[serde(rename = "MaxVelocity", serialize_with = "crate::serialization::serialize_f64")]
     pub max_velocity: f64,
-    #[serde(rename = "WeaponOffense")]
+    #[serde(rename = "WeaponOffense", serialize_with = "crate::serialization::serialize_f64")]
     pub weapon_offense: f64,
     #[serde(rename = "MaxVelocityEstimated")]
     pub max_velocity_estimated: u32,
@@ -259,10 +259,10 @@ pub fn read_spell_book(reader: &mut BinaryReader) -> Result<Vec<LayeredSpellId>>
     }
     let mut spells = Vec::with_capacity(count);
     for i in 0..count {
-        let id = reader.read_u32().context(format!("spell {} at pos {}", i, reader.position()))?;
-        // Layer is not stored in the binary - reference shows it as separate field
-        // For now, output just the ID
-        spells.push(LayeredSpellId { id, layer: 0 });
+        // LayeredSpellId is u16 Id + u16 Layer (per Chorizite Types/LayeredSpellId.generated.cs)
+        let id = reader.read_u16().context(format!("spell {} id at pos {}", i, reader.position()))? as u32;
+        let layer = reader.read_u16().context(format!("spell {} layer at pos {}", i, reader.position()))?;
+        spells.push(LayeredSpellId { id, layer });
     }
     Ok(spells)
 }
@@ -1427,4 +1427,84 @@ pub fn summoning_mastery_name(key: u32) -> String {
         0 => "Undef", 1 => "Primalist", 2 => "Necromancer", 3 => "Naturalist",
         _ => return format!("SummoningMastery_{}", key),
     }.to_string()
+}
+
+/// ArmorHighlightMask bitflags
+pub fn armor_highlight_mask_name(key: u16) -> String {
+    let flags: &[(u16, &str)] = &[
+        (0x0001, "ArmorLevel"),
+        (0x0002, "SlashingProtection"),
+        (0x0004, "PiercingProtection"),
+        (0x0008, "BludgeoningProtection"),
+        (0x0010, "ColdProtection"),
+        (0x0020, "FireProtection"),
+        (0x0040, "AcidProtection"),
+        (0x0080, "ElectricalProtection"),
+    ];
+
+    let names: Vec<&str> = flags.iter()
+        .filter(|(bit, _)| key & bit != 0)
+        .map(|(_, name)| *name)
+        .collect();
+
+    if names.is_empty() {
+        format!("ArmorHighlight_{}", key)
+    } else {
+        names.join(", ")
+    }
+}
+
+/// WeaponHighlightMask bitflags
+pub fn weapon_highlight_mask_name(key: u16) -> String {
+    let flags: &[(u16, &str)] = &[
+        (0x0001, "AttackSkill"),
+        (0x0002, "MeleeDefense"),
+        (0x0004, "Speed"),
+        (0x0008, "Damage"),
+        (0x0010, "DamageVariance"),
+        (0x0020, "DamageMod"),
+    ];
+
+    let names: Vec<&str> = flags.iter()
+        .filter(|(bit, _)| key & bit != 0)
+        .map(|(_, name)| *name)
+        .collect();
+
+    if names.is_empty() {
+        format!("WeaponHighlight_{}", key)
+    } else {
+        names.join(", ")
+    }
+}
+
+/// ResistHighlightMask bitflags
+pub fn resist_highlight_mask_name(key: u16) -> String {
+    let flags: &[(u16, &str)] = &[
+        (0x0001, "ResistSlash"),
+        (0x0002, "ResistPierce"),
+        (0x0004, "ResistBludgeon"),
+        (0x0008, "ResistFire"),
+        (0x0010, "ResistCold"),
+        (0x0020, "ResistAcid"),
+        (0x0040, "ResistElectric"),
+        (0x0080, "ResistHealthBoost"),
+        (0x0100, "ResistStaminaDrain"),
+        (0x0200, "ResistStaminaBoost"),
+        (0x0400, "ResistManaDrain"),
+        (0x0800, "ResistManaBoost"),
+        (0x1000, "ManaConversionMod"),
+        (0x2000, "ElementalDamageMod"),
+        (0x4000, "ResistNether"),
+    ];
+
+    let names: Vec<&str> = flags.iter()
+        .filter(|(bit, _)| key & bit != 0)
+        .map(|(_, name)| *name)
+        .collect();
+
+    if names.is_empty() {
+        format!("ResistHighlight_{}", key)
+    } else {
+        names.join(", ")
+    }
 }

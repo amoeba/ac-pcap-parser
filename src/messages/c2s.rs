@@ -408,11 +408,11 @@ pub struct OptionProperty {
     pub window_options: Vec<WindowOption>,
     #[serde(rename = "Unknown_k")]
     pub unknown_k: u32,
-    #[serde(rename = "ActiveOpacity")]
+    #[serde(rename = "ActiveOpacity", serialize_with = "crate::serialization::serialize_f32")]
     pub active_opacity: f32,
     #[serde(rename = "Unknown_l")]
     pub unknown_l: u32,
-    #[serde(rename = "InactiveOpacity")]
+    #[serde(rename = "InactiveOpacity", serialize_with = "crate::serialization::serialize_f32")]
     pub inactive_opacity: f32,
 }
 
