@@ -82,22 +82,31 @@ Message count now matches! The fix was handling `PcapError::Incomplete` correctl
 
 ### Enum Reference Sources
 
-**Primary Reference:** https://github.com/ACClientLib/ACProtocol/blob/main/protocol.xml
+**Primary Reference:** `protocol.xml` (local copy from ACClientLib/ACProtocol)
 
 | Enum | In protocol.xml | Notes |
 |------|-----------------|-------|
 | Sound | ✅ Yes | Full enum with 200+ values |
-| PropertyInt | ❌ No | Used ACEmulator/ACE as reference |
-| PropertyBool | ❌ No | Used ACEmulator/ACE as reference |
-| PropertyFloat | ❌ No | Used ACEmulator/ACE as reference |
-| PropertyString | ❌ No | Used ACEmulator/ACE as reference |
-| PropertyDataId | ❌ No | Used ACEmulator/ACE as reference |
-| PropertyInt64 | ❌ No | Used ACEmulator/ACE as reference |
-| SpellCategory | ❌ No | Basic mapping in s2c.rs |
-| EquipmentSet | ❌ No | Basic mapping in s2c.rs |
-| StatModType | ❌ No | Basic mapping in s2c.rs |
+| PropertyInt | ✅ Yes | 390 entries with `enum=` attributes for value types |
+| PropertyBool | ✅ Yes | Full enum |
+| PropertyFloat | ✅ Yes | Full enum |
+| PropertyString | ✅ Yes | Full enum |
+| PropertyDataId | ✅ Yes | Full enum |
+| PropertyInt64 | ✅ Yes | Full enum |
+| SpellCategory | ✅ Yes | Full enum |
+| EquipmentSet | ✅ Yes | Full enum |
 
-**ACE Reference:** https://github.com/ACEmulator/ACE/tree/master/Source/ACE.Entity/Enum/Properties
+**PropertyInt Value Types (from protocol.xml `enum=` attribute):**
+
+Many PropertyInt values have an `enum` attribute indicating which enum to use for interpreting the value:
+- `ItemType` (1) → ItemType enum
+- `CreatureType` (2) → CreatureType enum
+- `ClothingPriority` (4) → CoverageMask enum (note: different name!)
+- `ValidLocations` (9) → EquipMask enum
+- `DamageType` (45) → DamageType enum
+- `WeaponSkill` (48) → SkillId enum
+- `EquipmentSetId` (265) → EquipmentSet enum
+- See protocol.xml for full list (~80 properties with enum value types)
 
 ### How to Compare Output
 
