@@ -174,4 +174,28 @@ impl<'a> BinaryReader<'a> {
         self.cursor.read_exact(&mut buf)?;
         Ok(i16::from_le_bytes(buf))
     }
+
+    /// Read a PackedDWORD - variable length format used in ObjDesc
+    /// If high bit of first u16 is set, it's a 4-byte value
+    pub fn read_packed_dword(&mut self) -> Result<u32> {
+        let tmp = self.read_u16()? as i32;
+        if (tmp & 0x8000) != 0 {
+            // 4-byte format: high bit indicates extended
+            let high = ((tmp << 16) & 0x7FFFFFFF) as u32;
+            let low = self.read_u16()? as u32;
+            Ok(high | low)
+        } else {
+            Ok(tmp as u32)
+        }
+    }
+
+    /// Align cursor position to 4-byte boundary
+    pub fn align4(&mut self) -> Result<()> {
+        let pos = self.position() as usize;
+        let padding = (4 - (pos % 4)) % 4;
+        if padding > 0 {
+            self.read_bytes(padding)?;
+        }
+        Ok(())
+    }
 }

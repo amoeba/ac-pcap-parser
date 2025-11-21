@@ -911,11 +911,40 @@ impl CommunicationTextboxString {
         let text = reader.read_string16l()?;
         let chat_type_raw = reader.read_u32()?;
 
+        // Per protocol.xml ChatFragmentType enum
         let chat_type = match chat_type_raw {
-            0 => "Default",
-            1 => "System",
-            5 => "Magic",
-            _ => "Unknown",
+            0x00 => "Default",
+            0x02 => "Speech",
+            0x03 => "Tell",
+            0x04 => "OutgoingTell",
+            0x05 => "System",
+            0x06 => "Combat",
+            0x07 => "Magic",
+            0x08 => "Channels",
+            0x09 => "OutgoingChannel",
+            0x0A => "Social",
+            0x0B => "OutgoingSocial",
+            0x0C => "Emote",
+            0x0D => "Advancement",
+            0x0E => "Abuse",
+            0x0F => "Help",
+            0x10 => "Appraisal",
+            0x11 => "Spellcasting",
+            0x12 => "Allegiance",
+            0x13 => "Fellowship",
+            0x14 => "WorldBroadcast",
+            0x15 => "CombatEnemy",
+            0x16 => "CombatSelf",
+            0x17 => "Recall",
+            0x18 => "Craft",
+            0x19 => "Salvaging",
+            _ => return Ok(Self {
+                text,
+                chat_type: format!("Unknown_{}", chat_type_raw),
+                opcode: 0xF7E0,
+                message_type: "Communication_TextboxString".to_string(),
+                message_direction: "ServerToClient".to_string(),
+            }),
         }.to_string();
 
         Ok(Self {
@@ -996,15 +1025,16 @@ pub struct AnimPartChange {
 
 impl ObjectDescription {
     pub fn read(reader: &mut BinaryReader) -> Result<Self> {
-        // Format (from raw bytes analysis):
+        // Format (from Chorizite ObjDesc.generated.cs):
         // u8 version (typically 17 = 0x11)
         // u8 palette_count
         // u8 texture_count
         // u8 model_count
-        // u16 base_palette (if palette_count > 0)
-        // N * (u16 palette, u8 offset, u8 num_colors) subpalettes
-        // N * (u8 part_index, u16 old_tex, u16 new_tex) texture changes
-        // N * (u8 part_index, u16 part_id) model changes
+        // PackedDWORD base_palette (if palette_count > 0)
+        // N * (PackedDWORD palette, u8 offset, u8 num_colors) subpalettes
+        // N * (u8 part_index, PackedDWORD old_tex, PackedDWORD new_tex) texture changes
+        // N * (u8 part_index, PackedDWORD part_id) model changes
+        // 4-byte alignment at the end
 
         let version = reader.read_u8()?;
         let palette_count = reader.read_u8()?;
@@ -1016,20 +1046,17 @@ impl ObjectDescription {
             anyhow::bail!("Suspicious ObjDesc counts: pal={} tex={} model={}", palette_count, texture_count, model_count);
         }
 
-        // Read base palette if palette count > 0
+        // Read base palette if palette count > 0 (PackedDWORD)
         let palette = if palette_count > 0 {
-            reader.read_u16()? as u32
+            reader.read_packed_dword()?
         } else {
             0
         };
 
-        // Read subpalettes (4 bytes each)
+        // Read subpalettes (PackedDWORD palette, u8 offset, u8 num_colors)
         let mut subpalettes = Vec::new();
         for _ in 0..palette_count {
-            if reader.remaining() < 4 {
-                break; // Not enough data
-            }
-            let sub_palette = reader.read_u16()? as u32;
+            let sub_palette = reader.read_packed_dword()?;
             let offset = reader.read_u8()?;
             let num_colors = reader.read_u8()?;
             subpalettes.push(SubpaletteChange {
@@ -1039,15 +1066,12 @@ impl ObjectDescription {
             });
         }
 
-        // Read texture map changes (5 bytes each)
+        // Read texture map changes (u8 part_index, PackedDWORD old_tex, PackedDWORD new_tex)
         let mut tm_changes = Vec::new();
         for _ in 0..texture_count {
-            if reader.remaining() < 5 {
-                break; // Not enough data
-            }
             let part_index = reader.read_u8()?;
-            let old_tex_id = reader.read_u16()? as u32;
-            let new_tex_id = reader.read_u16()? as u32;
+            let old_tex_id = reader.read_packed_dword()?;
+            let new_tex_id = reader.read_packed_dword()?;
             tm_changes.push(TextureMapChange {
                 part_index,
                 old_tex_id,
@@ -1055,19 +1079,19 @@ impl ObjectDescription {
             });
         }
 
-        // Read animation part changes (3 bytes each)
+        // Read animation part changes (u8 part_index, PackedDWORD part_id)
         let mut ap_changes = Vec::new();
         for _ in 0..model_count {
-            if reader.remaining() < 3 {
-                break; // Not enough data
-            }
             let part_index = reader.read_u8()?;
-            let part_id = reader.read_u16()? as u32;
+            let part_id = reader.read_packed_dword()?;
             ap_changes.push(AnimPartChange {
                 part_index,
                 part_id,
             });
         }
+
+        // Align to 4-byte boundary after reading ObjDesc
+        reader.align4()?;
 
         Ok(Self {
             version,
@@ -1087,21 +1111,9 @@ impl ItemObjDescEvent {
         let object_id = reader.read_u32()?;
         let object_description = ObjectDescription::read(reader)?;
 
-        // Read remaining bytes - format: padding(2) + instance_seq(2) + visual_desc_seq(2)
-        let remaining = reader.remaining();
-        let (instance_sequence, visual_desc_sequence) = if remaining >= 6 {
-            let _ = reader.read_u16()?; // padding
-            let inst = reader.read_u16()?;
-            let vis = reader.read_u16()?;
-            (inst, vis)
-        } else if remaining >= 4 {
-            // No padding - just sequences
-            let inst = reader.read_u16()?;
-            let vis = reader.read_u16()?;
-            (inst, vis)
-        } else {
-            (0, 0)
-        };
+        // Read sequences (u16 each per Chorizite Item_ObjDescEvent.generated.cs)
+        let instance_sequence = reader.read_u16()?;
+        let visual_desc_sequence = reader.read_u16()?;
 
         Ok(Self {
             object_id,
@@ -1717,10 +1729,11 @@ impl ItemServerSaysContainId {
 // Helper functions for property names - use properties::property_int_name from properties.rs
 
 fn vital_name(key: u32) -> String {
+    // Per protocol.xml CurVitalId enum
     match key {
-        1 => "Health",
-        2 => "Stamina",
-        3 => "Mana",
+        2 => "Health",      // CurrentHealth = 0x02
+        4 => "Stamina",     // CurrentStamina = 0x04
+        6 => "Mana",        // CurrentMana = 0x06
         _ => return format!("Vital_{}", key),
     }.to_string()
 }
