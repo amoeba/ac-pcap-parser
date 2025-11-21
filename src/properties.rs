@@ -1078,20 +1078,47 @@ pub fn equipment_set_name(key: u32) -> String {
     }.to_string()
 }
 
-/// EquipMask enum (mask values)
+/// EquipMask enum (mask values) - decomposed as comma-separated flags
 pub fn equip_mask_name(key: u32) -> String {
-    match key {
-        0x00000001 => "Head", 0x00000002 => "ChestUnderwear", 0x00000004 => "AbdomenUnderwear",
-        0x00000008 => "UpperArmsUnderwear", 0x00000010 => "LowerArmsUnderwear", 0x00000020 => "Hands",
-        0x00000040 => "UpperLegsUnderwear", 0x00000080 => "LowerLegsUnderwear", 0x00000100 => "Feet",
-        0x00000200 => "Chest", 0x00000400 => "Abdomen", 0x00000800 => "UpperArms",
-        0x00001000 => "LowerArms", 0x00002000 => "UpperLegs", 0x00004000 => "LowerLegs",
-        0x00008000 => "Necklace", 0x00010000 => "RightBracelet", 0x00020000 => "LeftBracelet",
-        0x00040000 => "RightRing", 0x00080000 => "LeftRing", 0x00100000 => "MeleeWeapon",
-        0x00200000 => "Shield", 0x00400000 => "MissileWeapon", 0x00800000 => "Ammunition",
-        0x01000000 => "Wand",
-        _ => return format!("EquipMask_{}", key),
-    }.to_string()
+    // EquipMask is a bitflag - decompose into individual flags and join with ", "
+    let flags: &[(u32, &str)] = &[
+        (0x00000001, "HeadWear"),
+        (0x00000002, "ChestWear"),
+        (0x00000004, "AbdomenWear"),
+        (0x00000008, "UpperArmWear"),
+        (0x00000010, "LowerArmWear"),
+        (0x00000020, "HandWear"),
+        (0x00000040, "UpperLegWear"),
+        (0x00000080, "LowerLegWear"),
+        (0x00000100, "FootWear"),
+        (0x00000200, "ChestArmor"),
+        (0x00000400, "AbdomenArmor"),
+        (0x00000800, "UpperArmArmor"),
+        (0x00001000, "LowerArmArmor"),
+        (0x00002000, "UpperLegArmor"),
+        (0x00004000, "LowerLegArmor"),
+        (0x00008000, "Necklace"),
+        (0x00010000, "RightBracelet"),
+        (0x00020000, "LeftBracelet"),
+        (0x00040000, "RightRing"),
+        (0x00080000, "LeftRing"),
+        (0x00100000, "MeleeWeapon"),
+        (0x00200000, "Shield"),
+        (0x00400000, "MissileWeapon"),
+        (0x00800000, "Ammunition"),
+        (0x01000000, "Wand"),
+    ];
+
+    let names: Vec<&str> = flags.iter()
+        .filter(|(bit, _)| key & bit != 0)
+        .map(|(_, name)| *name)
+        .collect();
+
+    if names.is_empty() {
+        format!("EquipMask_{}", key)
+    } else {
+        names.join(", ")
+    }
 }
 
 /// CombatMode enum

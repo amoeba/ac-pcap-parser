@@ -1163,8 +1163,8 @@ impl CharacterCharacterOptionsEvent {
 pub struct ItemWearItem {
     #[serde(rename = "ObjectId")]
     pub object_id: u32,
-    #[serde(rename = "Location")]
-    pub location: u32,
+    #[serde(rename = "Slot")]
+    pub slot: String,
     #[serde(rename = "OrderedObjectId")]
     pub ordered_object_id: u32,
     #[serde(rename = "OrderedSequence")]
@@ -1182,11 +1182,12 @@ pub struct ItemWearItem {
 impl ItemWearItem {
     pub fn read(reader: &mut BinaryReader, ordered_object_id: u32, ordered_sequence: u32) -> Result<Self> {
         let object_id = reader.read_u32()?;
-        let location = reader.read_u32()?;
+        let slot_raw = reader.read_u32()?;
+        let slot = crate::properties::equip_mask_name(slot_raw);
 
         Ok(Self {
             object_id,
-            location,
+            slot,
             ordered_object_id,
             ordered_sequence,
             event_type: "Item_WearItem".to_string(),
@@ -1611,21 +1612,34 @@ fn spell_category_name(id: u16) -> String {
 }
 
 fn stat_mod_type_name(flags: u32) -> String {
-    // Decode stat mod type flags
+    // EnchantmentTypeFlags from protocol.xml - correct bit positions
     let mut parts = Vec::new();
 
-    // Type flags
-    if flags & 0x01 != 0 { parts.push("Int"); }
-    if flags & 0x02 != 0 { parts.push("Float"); }
-    if flags & 0x04 != 0 { parts.push("SingleStat"); }
-    if flags & 0x08 != 0 { parts.push("MultiStat"); }
-    if flags & 0x10 != 0 { parts.push("Additive"); }
-    if flags & 0x20 != 0 { parts.push("Multiplicative"); }
-    if flags & 0x40 != 0 { parts.push("Beneficial"); }
-    if flags & 0x80 != 0 { parts.push("Harmful"); }
+    // Stat type flags (lower bits)
+    if flags & 0x0000001 != 0 { parts.push("Attribute"); }
+    if flags & 0x0000002 != 0 { parts.push("SecondAtt"); }
+    if flags & 0x0000004 != 0 { parts.push("Int"); }
+    if flags & 0x0000008 != 0 { parts.push("Float"); }
+    if flags & 0x0000010 != 0 { parts.push("Skill"); }
+    if flags & 0x0000020 != 0 { parts.push("BodyDamageValue"); }
+    if flags & 0x0000040 != 0 { parts.push("BodyDamageVariance"); }
+    if flags & 0x0000080 != 0 { parts.push("BodyArmorValue"); }
+
+    // Modifier type flags (higher bits)
+    if flags & 0x0001000 != 0 { parts.push("SingleStat"); }
+    if flags & 0x0002000 != 0 { parts.push("MultipleStat"); }
+    if flags & 0x0004000 != 0 { parts.push("Multiplicative"); }
+    if flags & 0x0008000 != 0 { parts.push("Additive"); }
+    if flags & 0x0010000 != 0 { parts.push("AttackSkills"); }
+    if flags & 0x0020000 != 0 { parts.push("DefenseSkills"); }
+    if flags & 0x0100000 != 0 { parts.push("MultiplicativeDegrade"); }
+    if flags & 0x0200000 != 0 { parts.push("Additive_Degrade"); }
+    if flags & 0x0800000 != 0 { parts.push("Vitae"); }
+    if flags & 0x1000000 != 0 { parts.push("Cooldown"); }
+    if flags & 0x2000000 != 0 { parts.push("Beneficial"); }
 
     if parts.is_empty() {
-        "Unknown".to_string()
+        format!("StatModType_{}", flags)
     } else {
         parts.join(", ")
     }
@@ -1689,7 +1703,7 @@ pub struct ItemServerSaysContainId {
     #[serde(rename = "SlotIndex")]
     pub slot_index: u32,
     #[serde(rename = "ContainerType")]
-    pub container_type: u32,
+    pub container_type: String,
     #[serde(rename = "OrderedObjectId")]
     pub ordered_object_id: u32,
     #[serde(rename = "OrderedSequence")]
@@ -1709,7 +1723,26 @@ impl ItemServerSaysContainId {
         let object_id = reader.read_u32()?;
         let container_id = reader.read_u32()?;
         let slot_index = reader.read_u32()?;
-        let container_type = reader.read_u32()?;
+        let container_type_raw = reader.read_u32()?;
+
+        // ContainerProperties enum
+        let container_type = match container_type_raw {
+            0 => "None",
+            1 => "Container",
+            2 => "Foci",
+            _ => return Ok(Self {
+                object_id,
+                container_id,
+                slot_index,
+                container_type: format!("ContainerType_{}", container_type_raw),
+                ordered_object_id,
+                ordered_sequence,
+                event_type: "Item_ServerSaysContainId".to_string(),
+                opcode: 0xF7B0,
+                message_type: "Ordered_GameEvent".to_string(),
+                message_direction: "ServerToClient".to_string(),
+            }),
+        }.to_string();
 
         Ok(Self {
             object_id,
