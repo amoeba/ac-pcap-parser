@@ -1,0 +1,40 @@
+[package]
+name = "ac-pcap-web"
+version.workspace = true
+edition.workspace = true
+description = "Web UI for Asheron's Call PCAP parser"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ac-parser = { path = "../parser" }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+eframe = { version = "0.29", default-features = false, features = [
+    "default_fonts",
+    "glow",
+    "persistence",
+] }
+egui_extras = { version = "0.29", features = ["all_loaders"] }
+log = "0.4"
+
+# Web-specific dependencies
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = [
+    "Document",
+    "Window",
+    "Element",
+    "HtmlElement",
+    "DragEvent",
+    "DataTransfer",
+    "FileList",
+    "File",
+    "Blob",
+] }
+js-sys = "0.3"
+console_error_panic_hook = "0.1"
+tracing-wasm = "0.2"

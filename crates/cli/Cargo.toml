@@ -1,0 +1,18 @@
+[package]
+name = "ac-pcap-cli"
+version.workspace = true
+edition.workspace = true
+description = "CLI for Asheron's Call PCAP parser"
+
+[[bin]]
+name = "ac-pcap-parser"
+path = "src/main.rs"
+
+[dependencies]
+ac-parser = { path = "../parser" }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+clap = { version = "4.4", features = ["derive"] }
+ratatui = "0.28"
+crossterm = "0.28"
