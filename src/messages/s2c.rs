@@ -664,7 +664,7 @@ impl MovementData {
 
         // Parse based on movement type
         if movement_type_raw == 0x00 {
-            // InterpertedMotionState - try to read, but don't fail if not enough data
+            // InterpertedMotionState
             if let Ok(s) = InterpretedMotionState::read(reader) {
                 state = Some(s);
                 // Check for sticky object
@@ -710,22 +710,23 @@ impl InterpretedMotionState {
         };
 
         // ForwardCommand - default to Ready (0x03) if not present
+        // MotionCommand is a u16 in AC protocol
         let forward_command = if flags & 0x02 != 0 {
-            reader.read_u32()?
+            reader.read_u16()? as u32
         } else {
             0x03  // Ready
         };
 
         // SidestepCommand - default to 0 if not present
         let sidestep_command = if flags & 0x04 != 0 {
-            reader.read_u32()?
+            reader.read_u16()? as u32
         } else {
             0
         };
 
         // TurnCommand - default to 0 if not present
         let turn_command = if flags & 0x08 != 0 {
-            reader.read_u32()?
+            reader.read_u16()? as u32
         } else {
             0
         };
