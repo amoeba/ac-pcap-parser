@@ -610,29 +610,34 @@ impl PcapViewerApp {
         });
         ui.separator();
 
-        // Get available width for the grid
-        let available_width = ui.available_width();
-
         egui::ScrollArea::vertical().show(ui, |ui| {
+            // Get available width inside the scroll area
+            let available_width = ui.available_width();
+
             // On mobile, use fewer columns and calculate widths to fill space
             let num_columns = if is_mobile { 3 } else { 4 };
 
             // Calculate column widths for mobile to fill available space
-            // Mobile: ID (10%), Type (75%), Dir (15%)
-            // Desktop: ID (10%), Type (60%), Dir (15%), OpCode (15%)
-            let (id_width, type_width, dir_width, _opcode_width) = if is_mobile {
+            // Mobile: ID (12%), Type (76%), Dir (12%)
+            let (id_width, type_width, dir_width) = if is_mobile {
                 let id_w = available_width * 0.12;
                 let dir_w = available_width * 0.12;
-                let type_w = available_width - id_w - dir_w - 20.0; // 20px for spacing
-                (id_w, type_w, dir_w, 0.0)
+                let type_w = available_width - id_w - dir_w - 16.0; // spacing
+                (id_w, type_w, dir_w)
             } else {
-                (50.0, 0.0, 80.0, 80.0) // Let Type column auto-expand on desktop
+                (50.0, 0.0, 80.0)
             };
+
+            // On mobile, set the UI to fill available width
+            if is_mobile {
+                ui.set_min_width(available_width);
+            }
 
             egui::Grid::new("messages_grid")
                 .num_columns(num_columns)
                 .striped(true)
                 .min_col_width(if is_mobile { 30.0 } else { 50.0 })
+                .spacing(if is_mobile { egui::vec2(4.0, 4.0) } else { egui::vec2(8.0, 4.0) })
                 .show(ui, |ui| {
                     // Header row
                     if is_mobile {
@@ -642,7 +647,7 @@ impl PcapViewerApp {
                         ui.allocate_ui_with_layout(egui::vec2(type_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
                             ui.strong("Type");
                         });
-                        ui.allocate_ui_with_layout(egui::vec2(dir_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                        ui.allocate_ui_with_layout(egui::vec2(dir_width, 20.0), egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             ui.strong("Dir");
                         });
                     } else {
@@ -656,7 +661,7 @@ impl PcapViewerApp {
                     for (original_idx, id, msg_type, direction, opcode) in &filtered {
                         let is_selected = self.selected_message == Some(*original_idx);
 
-                        // ID column
+                        // ID column (left-aligned)
                         let id_response = if is_mobile {
                             ui.allocate_ui_with_layout(egui::vec2(id_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
                                 ui.selectable_label(is_selected, id.to_string())
@@ -671,7 +676,7 @@ impl PcapViewerApp {
                             }
                         }
 
-                        // Type column - truncate on mobile
+                        // Type column (left-aligned) - truncate on mobile
                         let display_type = if is_mobile && msg_type.len() > 25 {
                             format!("{}…", &msg_type[..24])
                         } else {
@@ -691,7 +696,7 @@ impl PcapViewerApp {
                             }
                         }
 
-                        // Direction column
+                        // Direction column (right-aligned on mobile)
                         let dir_color = if direction == "Send" {
                             egui::Color32::from_rgb(100, 200, 255)
                         } else {
@@ -703,7 +708,7 @@ impl PcapViewerApp {
                             direction.as_str()
                         };
                         let dir_response = if is_mobile {
-                            ui.allocate_ui_with_layout(egui::vec2(dir_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            ui.allocate_ui_with_layout(egui::vec2(dir_width, 20.0), egui::Layout::right_to_left(egui::Align::Center), |ui| {
                                 ui.selectable_label(is_selected, egui::RichText::new(dir_text).color(dir_color))
                             }).inner
                         } else {
@@ -761,28 +766,34 @@ impl PcapViewerApp {
         });
         ui.separator();
 
-        // Get available width for the grid
-        let available_width = ui.available_width();
-
         egui::ScrollArea::vertical().show(ui, |ui| {
+            // Get available width inside the scroll area
+            let available_width = ui.available_width();
+
             // On mobile, use fewer columns and calculate widths to fill space
             let num_columns = if is_mobile { 3 } else { 5 };
 
             // Calculate column widths for mobile to fill available space
-            // Mobile: ID (20%), Seq (60%), Dir (20%)
+            // Mobile: ID (15%), Seq (70%), Dir (15%)
             let (id_width, seq_width, dir_width) = if is_mobile {
-                let id_w = available_width * 0.20;
+                let id_w = available_width * 0.15;
                 let dir_w = available_width * 0.15;
-                let seq_w = available_width - id_w - dir_w - 20.0; // 20px for spacing
+                let seq_w = available_width - id_w - dir_w - 16.0; // spacing
                 (id_w, seq_w, dir_w)
             } else {
                 (50.0, 100.0, 80.0)
             };
 
+            // On mobile, set the UI to fill available width
+            if is_mobile {
+                ui.set_min_width(available_width);
+            }
+
             egui::Grid::new("packets_grid")
                 .num_columns(num_columns)
                 .striped(true)
                 .min_col_width(if is_mobile { 30.0 } else { 50.0 })
+                .spacing(if is_mobile { egui::vec2(4.0, 4.0) } else { egui::vec2(8.0, 4.0) })
                 .show(ui, |ui| {
                     // Header row
                     if is_mobile {
@@ -792,7 +803,7 @@ impl PcapViewerApp {
                         ui.allocate_ui_with_layout(egui::vec2(seq_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
                             ui.strong("Seq");
                         });
-                        ui.allocate_ui_with_layout(egui::vec2(dir_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                        ui.allocate_ui_with_layout(egui::vec2(dir_width, 20.0), egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             ui.strong("Dir");
                         });
                     } else {
@@ -807,7 +818,7 @@ impl PcapViewerApp {
                     for (original_idx, id, sequence, direction, flags, size) in &filtered {
                         let is_selected = self.selected_packet == Some(*original_idx);
 
-                        // ID column
+                        // ID column (left-aligned)
                         let id_response = if is_mobile {
                             ui.allocate_ui_with_layout(egui::vec2(id_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
                                 ui.selectable_label(is_selected, id.to_string())
@@ -822,7 +833,7 @@ impl PcapViewerApp {
                             }
                         }
 
-                        // Sequence column
+                        // Sequence column (left-aligned)
                         let seq_response = if is_mobile {
                             ui.allocate_ui_with_layout(egui::vec2(seq_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
                                 ui.selectable_label(is_selected, sequence.to_string())
@@ -837,7 +848,7 @@ impl PcapViewerApp {
                             }
                         }
 
-                        // Direction column
+                        // Direction column (right-aligned on mobile)
                         let dir_color = if direction == "Send" {
                             egui::Color32::from_rgb(100, 200, 255)
                         } else {
@@ -849,7 +860,7 @@ impl PcapViewerApp {
                             direction.as_str()
                         };
                         let dir_response = if is_mobile {
-                            ui.allocate_ui_with_layout(egui::vec2(dir_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            ui.allocate_ui_with_layout(egui::vec2(dir_width, 20.0), egui::Layout::right_to_left(egui::Align::Center), |ui| {
                                 ui.selectable_label(is_selected, egui::RichText::new(dir_text).color(dir_color))
                             }).inner
                         } else {
