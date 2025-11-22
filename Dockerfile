@@ -3,6 +3,9 @@
 # Stage 1: Build WASM
 FROM rust:1.83-slim-bookworm AS builder
 
+# Git SHA for version info (passed from CI)
+ARG GIT_SHA=dev
+
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
@@ -22,7 +25,7 @@ COPY crates ./crates
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/app/target \
-    cargo build -p web --release --target wasm32-unknown-unknown && \
+    GIT_SHA=${GIT_SHA} cargo build -p web --release --target wasm32-unknown-unknown && \
     cp /app/target/wasm32-unknown-unknown/release/web.wasm /app/web.wasm
 
 # Generate JS bindings
