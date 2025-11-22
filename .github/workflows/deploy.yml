@@ -237,33 +237,14 @@ jobs:
             ];
             const body = lines.join('\n');
 
-            // Find existing comment
-            const { data: comments } = await github.rest.issues.listComments({
+            // Always create new comment for debugging
+            console.log('Creating new comment');
+            await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
+              body: body
             });
-            console.log('Found', comments.length, 'comments');
-
-            const botComment = comments.find(c => c.body.includes('Preview Deployment'));
-
-            if (botComment) {
-              console.log('Updating existing comment:', botComment.id);
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: body
-              });
-            } else {
-              console.log('Creating new comment');
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-                body: body
-              });
-            }
             console.log('Comment posted successfully');
 
   # Cleanup preview deployments when PRs are closed
