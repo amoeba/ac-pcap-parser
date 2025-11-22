@@ -3,7 +3,6 @@ target/
 *.json
 *.jsonl
 *.js
-.git/
 .github/
 *.md
 !crates/web/README.md
