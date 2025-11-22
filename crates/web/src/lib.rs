@@ -636,9 +636,15 @@ impl PcapViewerApp {
                 .show(ui, |ui| {
                     // Header row
                     if is_mobile {
-                        ui.add_sized([id_width, 20.0], egui::Label::new(egui::RichText::new("ID").strong()));
-                        ui.add_sized([type_width, 20.0], egui::Label::new(egui::RichText::new("Type").strong()));
-                        ui.add_sized([dir_width, 20.0], egui::Label::new(egui::RichText::new("Dir").strong()));
+                        ui.allocate_ui_with_layout(egui::vec2(id_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            ui.strong("ID");
+                        });
+                        ui.allocate_ui_with_layout(egui::vec2(type_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            ui.strong("Type");
+                        });
+                        ui.allocate_ui_with_layout(egui::vec2(dir_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            ui.strong("Dir");
+                        });
                     } else {
                         ui.strong("ID");
                         ui.strong("Type");
@@ -652,7 +658,9 @@ impl PcapViewerApp {
 
                         // ID column
                         let id_response = if is_mobile {
-                            ui.add_sized([id_width, 20.0], egui::SelectableLabel::new(is_selected, id.to_string()))
+                            ui.allocate_ui_with_layout(egui::vec2(id_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                                ui.selectable_label(is_selected, id.to_string())
+                            }).inner
                         } else {
                             ui.selectable_label(is_selected, id.to_string())
                         };
@@ -670,7 +678,9 @@ impl PcapViewerApp {
                             msg_type.clone()
                         };
                         let type_response = if is_mobile {
-                            ui.add_sized([type_width, 20.0], egui::SelectableLabel::new(is_selected, &display_type))
+                            ui.allocate_ui_with_layout(egui::vec2(type_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                                ui.selectable_label(is_selected, &display_type)
+                            }).inner
                         } else {
                             ui.selectable_label(is_selected, &display_type)
                         };
@@ -693,7 +703,9 @@ impl PcapViewerApp {
                             direction.as_str()
                         };
                         let dir_response = if is_mobile {
-                            ui.add_sized([dir_width, 20.0], egui::SelectableLabel::new(is_selected, egui::RichText::new(dir_text).color(dir_color)))
+                            ui.allocate_ui_with_layout(egui::vec2(dir_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                                ui.selectable_label(is_selected, egui::RichText::new(dir_text).color(dir_color))
+                            }).inner
                         } else {
                             ui.selectable_label(is_selected, egui::RichText::new(dir_text).color(dir_color))
                         };
@@ -774,9 +786,15 @@ impl PcapViewerApp {
                 .show(ui, |ui| {
                     // Header row
                     if is_mobile {
-                        ui.add_sized([id_width, 20.0], egui::Label::new(egui::RichText::new("ID").strong()));
-                        ui.add_sized([seq_width, 20.0], egui::Label::new(egui::RichText::new("Seq").strong()));
-                        ui.add_sized([dir_width, 20.0], egui::Label::new(egui::RichText::new("Dir").strong()));
+                        ui.allocate_ui_with_layout(egui::vec2(id_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            ui.strong("ID");
+                        });
+                        ui.allocate_ui_with_layout(egui::vec2(seq_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            ui.strong("Seq");
+                        });
+                        ui.allocate_ui_with_layout(egui::vec2(dir_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            ui.strong("Dir");
+                        });
                     } else {
                         ui.strong("ID");
                         ui.strong("Seq");
@@ -791,7 +809,9 @@ impl PcapViewerApp {
 
                         // ID column
                         let id_response = if is_mobile {
-                            ui.add_sized([id_width, 20.0], egui::SelectableLabel::new(is_selected, id.to_string()))
+                            ui.allocate_ui_with_layout(egui::vec2(id_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                                ui.selectable_label(is_selected, id.to_string())
+                            }).inner
                         } else {
                             ui.selectable_label(is_selected, id.to_string())
                         };
@@ -804,7 +824,9 @@ impl PcapViewerApp {
 
                         // Sequence column
                         let seq_response = if is_mobile {
-                            ui.add_sized([seq_width, 20.0], egui::SelectableLabel::new(is_selected, sequence.to_string()))
+                            ui.allocate_ui_with_layout(egui::vec2(seq_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                                ui.selectable_label(is_selected, sequence.to_string())
+                            }).inner
                         } else {
                             ui.selectable_label(is_selected, sequence.to_string())
                         };
@@ -827,7 +849,9 @@ impl PcapViewerApp {
                             direction.as_str()
                         };
                         let dir_response = if is_mobile {
-                            ui.add_sized([dir_width, 20.0], egui::SelectableLabel::new(is_selected, egui::RichText::new(dir_text).color(dir_color)))
+                            ui.allocate_ui_with_layout(egui::vec2(dir_width, 20.0), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                                ui.selectable_label(is_selected, egui::RichText::new(dir_text).color(dir_color))
+                            }).inner
                         } else {
                             ui.selectable_label(is_selected, egui::RichText::new(dir_text).color(dir_color))
                         };
