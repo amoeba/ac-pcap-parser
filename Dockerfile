@@ -45,34 +45,7 @@ FROM nginx:alpine
 # Copy built files
 COPY --from=builder /app/pkg /usr/share/nginx/html
 
-# Configure nginx for SPA and proper MIME types
-RUN cat > /etc/nginx/conf.d/default.conf << 'EOF'
-server {
-    listen 80;
-    listen 5000;
-    server_name _;
-    root /usr/share/nginx/html;
-    index index.html;
-
-    # WASM MIME type
-    types {
-        application/wasm wasm;
-    }
-
-    # Gzip compression
-    gzip on;
-    gzip_types text/plain text/css application/javascript application/wasm;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Cache static assets
-    location ~* \.(js|wasm)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-}
-EOF
+# Copy nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80 5000
