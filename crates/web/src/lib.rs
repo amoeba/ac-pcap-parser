@@ -225,10 +225,15 @@ impl eframe::App for PcapViewerApp {
         });
 
         // Determine responsive layout mode
-        let screen_width = ctx.screen_rect().width();
+        let screen_rect = ctx.screen_rect();
+        let screen_width = screen_rect.width();
+        let screen_height = screen_rect.height();
         let is_mobile = screen_width < MOBILE_BREAKPOINT;
         let is_tablet = screen_width >= MOBILE_BREAKPOINT && screen_width < TABLET_BREAKPOINT;
         let has_data = !self.messages.is_empty() || !self.packets.is_empty();
+
+        // Debug mode string
+        let mode_str = if is_mobile { "M" } else if is_tablet { "T" } else { "D" };
 
         // Top panel with tabs and controls - responsive
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
@@ -337,15 +342,19 @@ impl eframe::App for PcapViewerApp {
                     ui.spinner();
                 }
 
+                // Debug info: mode, width x height, show_detail state
+                let debug_info = format!(
+                    "[{}:{}x{} d:{}]",
+                    mode_str,
+                    screen_width as i32,
+                    screen_height as i32,
+                    if self.show_detail_panel { "1" } else { "0" }
+                );
+
                 if is_mobile {
-                    // Mobile: Minimal status with debug info
-                    ui.label(format!("{} msgs [M:{}px]", self.messages.len(), screen_width as i32));
-                } else if is_tablet {
-                    // Tablet: status with debug info
-                    ui.label(format!("{} [T:{}px]", &self.status_message, screen_width as i32));
+                    ui.label(format!("{} msgs {}", self.messages.len(), debug_info));
                 } else {
-                    // Desktop: full status with debug info
-                    ui.label(format!("{} [D:{}px]", &self.status_message, screen_width as i32));
+                    ui.label(format!("{} {}", &self.status_message, debug_info));
                 }
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -392,10 +401,9 @@ impl eframe::App for PcapViewerApp {
             });
         });
 
-        // Right panel with detail view - responsive
-        // On mobile: only show if toggled on (as overlay-style panel)
-        // On tablet: narrower panel
-        // On desktop: normal width panel
+        // Detail panel - responsive layout:
+        // Mobile: Bottom panel (stacked vertically below list)
+        // Desktop/Tablet: Right side panel (side by side)
         let show_detail = if is_mobile {
             self.show_detail_panel && has_data
         } else {
@@ -403,70 +411,50 @@ impl eframe::App for PcapViewerApp {
         };
 
         if show_detail {
-            let panel_width = if is_mobile {
-                // Mobile: nearly full width overlay
-                (screen_width * 0.85).max(200.0)
-            } else if is_tablet {
-                // Tablet: 35% of screen
-                (screen_width * 0.35).max(200.0)
-            } else {
-                // Desktop: 35% with min/max constraints
-                (screen_width * 0.35).clamp(300.0, 500.0)
-            };
+            if is_mobile {
+                // Mobile: Bottom panel (stacked layout)
+                let panel_height = (screen_height * 0.45).max(200.0);
 
-            // Use width_range with same min/max to force exact width
-            egui::SidePanel::right("detail_panel")
-                .default_width(panel_width)
-                .width_range(panel_width..=panel_width)
-                .resizable(false)
-                .show(ctx, |ui| {
-                    ui.horizontal(|ui| {
-                        ui.heading("Detail");
-                        if is_mobile {
+                egui::TopBottomPanel::bottom("detail_panel_bottom")
+                    .default_height(panel_height)
+                    .height_range(panel_height..=panel_height)
+                    .resizable(false)
+                    .show(ctx, |ui| {
+                        ui.horizontal(|ui| {
+                            ui.heading("Detail");
                             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                                 if ui.button("×").clicked() {
                                     self.show_detail_panel = false;
                                 }
                             });
-                        }
-                    });
-                    ui.separator();
+                        });
+                        ui.separator();
 
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        match self.current_tab {
-                            Tab::Messages => {
-                                if let Some(idx) = self.selected_message {
-                                    if idx < self.messages.len() {
-                                        let tree_id = format!("message_tree_{}", idx);
-                                        JsonTree::new(&tree_id, &self.messages[idx].data)
-                                            .show(ui);
-                                    } else {
-                                        ui.label("No message selected");
-                                    }
-                                } else {
-                                    ui.label("No message selected");
-                                }
-                            }
-                            Tab::Fragments => {
-                                if let Some(idx) = self.selected_packet {
-                                    if idx < self.packets.len() {
-                                        if let Ok(value) = serde_json::to_value(&self.packets[idx]) {
-                                            let tree_id = format!("packet_tree_{}", idx);
-                                            JsonTree::new(&tree_id, &value)
-                                                .show(ui);
-                                        } else {
-                                            ui.label("Error displaying packet");
-                                        }
-                                    } else {
-                                        ui.label("No packet selected");
-                                    }
-                                } else {
-                                    ui.label("No packet selected");
-                                }
-                            }
-                        }
+                        egui::ScrollArea::vertical().show(ui, |ui| {
+                            self.show_detail_content(ui);
+                        });
                     });
-                });
+            } else {
+                // Desktop/Tablet: Right side panel
+                let panel_width = if is_tablet {
+                    (screen_width * 0.35).max(200.0)
+                } else {
+                    (screen_width * 0.35).clamp(300.0, 500.0)
+                };
+
+                egui::SidePanel::right("detail_panel_right")
+                    .default_width(panel_width)
+                    .width_range(panel_width..=panel_width)
+                    .resizable(false)
+                    .show(ctx, |ui| {
+                        ui.heading("Detail");
+                        ui.separator();
+
+                        egui::ScrollArea::vertical().show(ui, |ui| {
+                            self.show_detail_content(ui);
+                        });
+                    });
+            }
         }
 
         // Central panel with list - responsive
@@ -525,6 +513,42 @@ impl eframe::App for PcapViewerApp {
 }
 
 impl PcapViewerApp {
+    /// Show the detail panel content (shared between bottom and side panel)
+    fn show_detail_content(&self, ui: &mut egui::Ui) {
+        match self.current_tab {
+            Tab::Messages => {
+                if let Some(idx) = self.selected_message {
+                    if idx < self.messages.len() {
+                        let tree_id = format!("message_tree_{}", idx);
+                        JsonTree::new(&tree_id, &self.messages[idx].data)
+                            .show(ui);
+                    } else {
+                        ui.label("No message selected");
+                    }
+                } else {
+                    ui.label("No message selected");
+                }
+            }
+            Tab::Fragments => {
+                if let Some(idx) = self.selected_packet {
+                    if idx < self.packets.len() {
+                        if let Ok(value) = serde_json::to_value(&self.packets[idx]) {
+                            let tree_id = format!("packet_tree_{}", idx);
+                            JsonTree::new(&tree_id, &value)
+                                .show(ui);
+                        } else {
+                            ui.label("Error displaying packet");
+                        }
+                    } else {
+                        ui.label("No packet selected");
+                    }
+                } else {
+                    ui.label("No packet selected");
+                }
+            }
+        }
+    }
+
     /// Draw the theme toggle (sun/moon icon)
     fn draw_theme_toggle(&mut self, ui: &mut egui::Ui) {
         let (rect, response) = ui.allocate_exact_size(egui::vec2(20.0, 20.0), egui::Sense::click());
