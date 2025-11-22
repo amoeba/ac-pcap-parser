@@ -73,8 +73,27 @@ jobs:
             --out-dir pkg \
             --no-typescript \
             target/wasm32-unknown-unknown/release/web.wasm
-          cp crates/web/index.html pkg/
-          cp pkt_2025-11-18_1763490291_log.pcap pkg/example.pcap
+
+      - name: Apply cache busting
+        run: |
+          cd pkg
+          # Compute hash of wasm file (first 16 chars of sha256)
+          HASH=$(sha256sum web_bg.wasm | cut -c1-16)
+          echo "Content hash: $HASH"
+
+          # Update wasm reference in JS and rename with hash
+          sed -i "s/web_bg.wasm/web_bg.${HASH}.wasm/g" web.js
+          mv web.js "web.${HASH}.js"
+          mv web_bg.wasm "web_bg.${HASH}.wasm"
+
+          # Copy index.html with updated JS reference
+          sed "s|./web.js|./web.${HASH}.js|g" ../crates/web/index.html > index.html
+
+          # Copy example PCAP
+          cp ../pkt_2025-11-18_1763490291_log.pcap example.pcap
+
+          echo "Cache-busted files:"
+          ls -la
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
