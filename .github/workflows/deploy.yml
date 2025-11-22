@@ -214,21 +214,26 @@ jobs:
             const appName = '${{ steps.app-name.outputs.app_name }}';
             const sha = '${{ github.event.pull_request.head.sha }}';
             const shortSha = sha.substring(0, 7);
-            const commitUrl = `https://github.com/${{ github.repository }}/commit/${sha}`;
+            const commitUrl = 'https://github.com/${{ github.repository }}/commit/' + sha;
 
             console.log('URL:', url);
             console.log('App:', appName);
             console.log('SHA:', shortSha);
 
-            const body = `## 🚀 Preview Deployment
-
-**URL:** ${url}
-**App:** \`${appName}\`
-**Commit:** [\`${shortSha}\`](${commitUrl})
-
-_Updated: ${new Date().toISOString()}_
-
-This preview will be destroyed when the PR is closed.`;
+            const lines = [
+              '## 🚀 Preview Deployment',
+              '',
+              '| | |',
+              '|---|---|',
+              '| URL | ' + url + ' |',
+              '| App | `' + appName + '` |',
+              '| Commit | [`' + shortSha + '`](' + commitUrl + ') |',
+              '',
+              '_Updated: ' + new Date().toISOString() + '_',
+              '',
+              'This preview will be destroyed when the PR is closed.'
+            ];
+            const body = lines.join('\n');
 
             // Find existing comment
             const { data: comments } = await github.rest.issues.listComments({
