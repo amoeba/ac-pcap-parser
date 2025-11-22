@@ -104,7 +104,7 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix=sha-,format=long
+            type=sha,prefix=
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push
@@ -159,8 +159,7 @@ jobs:
       - name: Generate image tag
         id: image-tag
         run: |
-          # Use commit SHA for unique tags (avoids caching issues)
-          echo "tag=sha-${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+          echo "tag=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
 
       - name: Setup SSH for Dokku
         run: |
@@ -176,13 +175,13 @@ jobs:
 
           echo "Deploying $IMAGE to $APP_NAME"
 
-          # Check if app exists, create if not
+          # Destroy and recreate app to force fresh image pull (avoids caching)
           ssh -i ~/.ssh/deploy_key dokku@${{ secrets.DOKKU_HOST }} \
-            apps:exists "$APP_NAME" 2>/dev/null || \
+            apps:destroy "$APP_NAME" --force 2>/dev/null || true
           ssh -i ~/.ssh/deploy_key dokku@${{ secrets.DOKKU_HOST }} \
             apps:create "$APP_NAME"
 
-          # Deploy the image (SHA-based tags ensure each commit gets a fresh image)
+          # Deploy the image
           ssh -i ~/.ssh/deploy_key dokku@${{ secrets.DOKKU_HOST }} \
             git:from-image "$APP_NAME" "$IMAGE"
 
