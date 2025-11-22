@@ -2,7 +2,7 @@ name: Build and Deploy
 
 on:
   push:
-    branches: [main, 'claude/**']
+    branches: [main]
     tags: ['v*']
   pull_request:
     branches: [main]
@@ -141,40 +141,25 @@ jobs:
               ps:rebuild ${{ secrets.DOKKU_APP_NAME }}
           fi
 
-  # Preview deployment for claude/** branches and PRs
+  # Preview deployment for PRs
   deploy-preview:
     runs-on: ubuntu-latest
     needs: build-image
     permissions:
       pull-requests: write
-    if: |
-      github.event_name == 'push' && startsWith(github.ref, 'refs/heads/claude/') ||
-      github.event_name == 'pull_request' && github.event.action != 'closed'
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
     steps:
       - name: Generate preview app name
         id: app-name
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            APP_SUFFIX="pr-${{ github.event.pull_request.number }}"
-          else
-            # Extract branch name and sanitize for Dokku app name
-            BRANCH="${{ github.ref_name }}"
-            # Remove claude/ prefix, lowercase, replace invalid chars with dashes, truncate
-            APP_SUFFIX=$(echo "$BRANCH" | sed 's|^claude/||' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | cut -c1-30)
-          fi
-          echo "app_name=${{ secrets.DOKKU_APP_NAME }}-${APP_SUFFIX}" >> $GITHUB_OUTPUT
-          echo "Preview app name: ${{ secrets.DOKKU_APP_NAME }}-${APP_SUFFIX}"
+          APP_NAME="${{ secrets.DOKKU_APP_NAME }}-pr-${{ github.event.pull_request.number }}"
+          echo "app_name=$APP_NAME" >> $GITHUB_OUTPUT
+          echo "Preview app name: $APP_NAME"
 
       - name: Generate image tag
         id: image-tag
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "tag=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-          else
-            # Sanitize branch name for docker tag
-            TAG=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')
-            echo "tag=$TAG" >> $GITHUB_OUTPUT
-          fi
+          echo "tag=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
 
       - name: Setup SSH for Dokku
         run: |
