@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.4
 
 # Stage 1: Build WASM
-FROM rust:1.91-slim-bookworm AS builder
+FROM rust:1.83-slim-bookworm AS builder
 
 # Install dependencies (including git for build.rs)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -48,4 +48,4 @@ COPY --from=builder /app/pkg /usr/share/nginx/html
 # Copy nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 80 5000
+EXPOSE 80
