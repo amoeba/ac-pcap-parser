@@ -50,7 +50,10 @@ fn build_web(serve: bool, port: u16, small: bool) -> Result<()> {
     let web_dir = root.join("crates/web");
     let pkg_dir = web_dir.join("pkg");
 
-    // Ensure pkg directory exists
+    // Clean and recreate pkg directory (removes stale files from previous builds)
+    if pkg_dir.exists() {
+        std::fs::remove_dir_all(&pkg_dir).context("Failed to clean pkg directory")?;
+    }
     std::fs::create_dir_all(&pkg_dir).context("Failed to create pkg directory")?;
 
     // Build WASM
