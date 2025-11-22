@@ -73,7 +73,24 @@ impl Default for PcapViewerApp {
 }
 
 impl PcapViewerApp {
-    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        // Configure fonts with emoji support
+        let mut fonts = egui::FontDefinitions::default();
+
+        // Add Noto Emoji as fallback font
+        fonts.font_data.insert(
+            "noto_emoji".to_owned(),
+            egui::FontData::from_static(include_bytes!("../assets/NotoEmoji-Regular.ttf")).into(),
+        );
+
+        // Add emoji font as fallback for proportional text
+        fonts.families
+            .entry(egui::FontFamily::Proportional)
+            .or_default()
+            .push("noto_emoji".to_owned());
+
+        cc.egui_ctx.set_fonts(fonts);
+
         Self::default()
     }
 
@@ -257,7 +274,7 @@ impl eframe::App for PcapViewerApp {
 
                 // Theme toggle on far right
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let theme_icon = if self.dark_mode { "Light" } else { "Dark" };
+                    let theme_icon = if self.dark_mode { "☀️" } else { "🌙" };
                     if ui.button(theme_icon).on_hover_text("Toggle dark/light mode").clicked() {
                         self.dark_mode = !self.dark_mode;
                     }
