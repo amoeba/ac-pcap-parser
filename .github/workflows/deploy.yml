@@ -188,9 +188,13 @@ jobs:
           ssh -i ~/.ssh/deploy_key dokku@${{ secrets.DOKKU_HOST }} \
             apps:create "$APP_NAME"
 
-          # Deploy the image
-          ssh -i ~/.ssh/deploy_key dokku@${{ secrets.DOKKU_HOST }} \
-            git:from-image "$APP_NAME" "$IMAGE"
+          # Deploy the image (allow "no changes" to succeed, rebuild if needed)
+          if ! ssh -i ~/.ssh/deploy_key dokku@${{ secrets.DOKKU_HOST }} \
+            git:from-image "$APP_NAME" "$IMAGE" 2>&1; then
+            echo "git:from-image returned non-zero, triggering rebuild..."
+            ssh -i ~/.ssh/deploy_key dokku@${{ secrets.DOKKU_HOST }} \
+              ps:rebuild "$APP_NAME"
+          fi
 
       - name: Get preview URL
         id: preview-url
