@@ -54,7 +54,7 @@ jobs:
         run: cargo build -p ac-parser
 
       - name: Build CLI
-        run: cargo build -p cli
+        run: cargo build -p ac-pcap-cli
 
       - name: Build desktop app
         run: cargo build -p web --bin ac-pcap-viewer --features desktop
