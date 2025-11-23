@@ -2,9 +2,9 @@
 //!
 //! A drag-and-drop web interface built with egui for parsing AC PCAP files.
 
+use ac_parser::{messages::ParsedMessage, PacketParser, ParsedPacket};
 use eframe::egui;
 use egui_json_tree::JsonTree;
-use ac_parser::{PacketParser, ParsedPacket, messages::ParsedMessage};
 use std::sync::{Arc, Mutex};
 
 #[derive(Default, PartialEq, Eq, Clone, Copy)]
@@ -133,8 +133,16 @@ impl PcapViewerApp {
                 );
                 self.packets = packets;
                 self.messages = messages;
-                self.selected_message = if self.messages.is_empty() { None } else { Some(0) };
-                self.selected_packet = if self.packets.is_empty() { None } else { Some(0) };
+                self.selected_message = if self.messages.is_empty() {
+                    None
+                } else {
+                    Some(0)
+                };
+                self.selected_packet = if self.packets.is_empty() {
+                    None
+                } else {
+                    Some(0)
+                };
             }
             Err(e) => {
                 self.status_message = format!("Error parsing PCAP: {}", e);
@@ -297,15 +305,15 @@ async fn fetch_bytes(url: &str) -> Result<Vec<u8>, String> {
         .await
         .map_err(|e| format!("Fetch error: {:?}", e))?;
 
-    let resp: Response = resp_value.dyn_into()
-        .map_err(|_| "Response cast error")?;
+    let resp: Response = resp_value.dyn_into().map_err(|_| "Response cast error")?;
 
     if !resp.ok() {
         return Err(format!("HTTP error: {}", resp.status()));
     }
 
     let array_buffer = JsFuture::from(
-        resp.array_buffer().map_err(|e| format!("ArrayBuffer error: {:?}", e))?
+        resp.array_buffer()
+            .map_err(|e| format!("ArrayBuffer error: {:?}", e))?,
     )
     .await
     .map_err(|e| format!("ArrayBuffer await error: {:?}", e))?;
@@ -331,7 +339,6 @@ fn get_url_from_query_params() -> Option<String> {
     let params = web_sys::UrlSearchParams::new_with_str(&search).ok()?;
     params.get("url")
 }
-
 
 impl eframe::App for PcapViewerApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -377,7 +384,9 @@ impl eframe::App for PcapViewerApp {
         });
 
         // Mobile scaling: store base pixels_per_point and apply scale factor
-        let base_ppp = *self.base_pixels_per_point.get_or_insert_with(|| ctx.pixels_per_point());
+        let base_ppp = *self
+            .base_pixels_per_point
+            .get_or_insert_with(|| ctx.pixels_per_point());
         let current_ppp = ctx.pixels_per_point();
 
         // Calculate viewport width in base units (before our custom scaling)
@@ -386,7 +395,11 @@ impl eframe::App for PcapViewerApp {
         let is_mobile_viewport = viewport_width < MOBILE_BREAKPOINT;
 
         // Apply appropriate scale factor
-        let desired_ppp = if is_mobile_viewport { base_ppp * MOBILE_SCALE } else { base_ppp };
+        let desired_ppp = if is_mobile_viewport {
+            base_ppp * MOBILE_SCALE
+        } else {
+            base_ppp
+        };
         if (current_ppp - desired_ppp).abs() > 0.01 {
             ctx.set_pixels_per_point(desired_ppp);
         }
@@ -400,7 +413,13 @@ impl eframe::App for PcapViewerApp {
         let has_data = !self.messages.is_empty() || !self.packets.is_empty();
 
         // Debug mode string
-        let mode_str = if is_mobile { "M" } else if is_tablet { "T" } else { "D" };
+        let mode_str = if is_mobile {
+            "M"
+        } else if is_tablet {
+            "T"
+        } else {
+            "D"
+        };
 
         // Track menu actions to execute after borrow ends
         let mut open_file_clicked = false;
@@ -476,7 +495,11 @@ impl eframe::App for PcapViewerApp {
                             if has_data {
                                 ui.separator();
                                 let detail_icon = if self.show_detail_panel { "×" } else { "≡" };
-                                if ui.button(detail_icon).on_hover_text("Toggle detail panel").clicked() {
+                                if ui
+                                    .button(detail_icon)
+                                    .on_hover_text("Toggle detail panel")
+                                    .clicked()
+                                {
                                     self.show_detail_panel = !self.show_detail_panel;
                                 }
                             }
@@ -485,19 +508,27 @@ impl eframe::App for PcapViewerApp {
 
                     // Second row: Tabs + minimal controls
                     ui.horizontal(|ui| {
-                        if ui.selectable_label(self.current_tab == Tab::Messages, "Msg").clicked() {
+                        if ui
+                            .selectable_label(self.current_tab == Tab::Messages, "Msg")
+                            .clicked()
+                        {
                             self.current_tab = Tab::Messages;
                         }
-                        if ui.selectable_label(self.current_tab == Tab::Fragments, "Frag").clicked() {
+                        if ui
+                            .selectable_label(self.current_tab == Tab::Fragments, "Frag")
+                            .clicked()
+                        {
                             self.current_tab = Tab::Fragments;
                         }
 
                         ui.separator();
 
                         // Compact search
-                        ui.add(egui::TextEdit::singleline(&mut self.search_query)
-                            .hint_text("Search...")
-                            .desired_width(ui.available_width() - 40.0));
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.search_query)
+                                .hint_text("Search...")
+                                .desired_width(ui.available_width() - 40.0),
+                        );
 
                         // Sort direction only
                         if self.draw_sort_button(ui) {
@@ -508,14 +539,24 @@ impl eframe::App for PcapViewerApp {
             } else {
                 // Desktop/Tablet: Single row layout
                 ui.horizontal(|ui| {
-                    ui.heading(if is_tablet { "AC PCAP" } else { "AC PCAP Parser" });
+                    ui.heading(if is_tablet {
+                        "AC PCAP"
+                    } else {
+                        "AC PCAP Parser"
+                    });
                     ui.separator();
 
                     // Tab buttons
-                    if ui.selectable_label(self.current_tab == Tab::Messages, "Messages").clicked() {
+                    if ui
+                        .selectable_label(self.current_tab == Tab::Messages, "Messages")
+                        .clicked()
+                    {
                         self.current_tab = Tab::Messages;
                     }
-                    if ui.selectable_label(self.current_tab == Tab::Fragments, "Fragments").clicked() {
+                    if ui
+                        .selectable_label(self.current_tab == Tab::Fragments, "Fragments")
+                        .clicked()
+                    {
                         self.current_tab = Tab::Fragments;
                     }
 
@@ -525,9 +566,11 @@ impl eframe::App for PcapViewerApp {
                     if !is_tablet {
                         ui.label("Search:");
                     }
-                    ui.add(egui::TextEdit::singleline(&mut self.search_query)
-                        .hint_text("Search...")
-                        .desired_width(if is_tablet { 120.0 } else { 150.0 }));
+                    ui.add(
+                        egui::TextEdit::singleline(&mut self.search_query)
+                            .hint_text("Search...")
+                            .desired_width(if is_tablet { 120.0 } else { 150.0 }),
+                    );
 
                     ui.separator();
 
@@ -538,13 +581,23 @@ impl eframe::App for PcapViewerApp {
                     egui::ComboBox::from_label("")
                         .selected_text(match self.sort_field {
                             SortField::Id => "ID",
-                            SortField::Type => if is_tablet { "Type" } else { "Type/Seq" },
+                            SortField::Type => {
+                                if is_tablet {
+                                    "Type"
+                                } else {
+                                    "Type/Seq"
+                                }
+                            }
                             SortField::Direction => "Dir",
                         })
                         .show_ui(ui, |ui| {
                             ui.selectable_value(&mut self.sort_field, SortField::Id, "ID");
                             ui.selectable_value(&mut self.sort_field, SortField::Type, "Type/Seq");
-                            ui.selectable_value(&mut self.sort_field, SortField::Direction, "Direction");
+                            ui.selectable_value(
+                                &mut self.sort_field,
+                                SortField::Direction,
+                                "Direction",
+                            );
                         });
 
                     if self.draw_sort_button(ui) {
@@ -586,28 +639,37 @@ impl eframe::App for PcapViewerApp {
                     let claude_color = egui::Color32::from_rgb(217, 119, 87);
                     if is_mobile {
                         // Mobile: Just the logo
-                        let (rect, response) = ui.allocate_exact_size(egui::vec2(14.0, 14.0), egui::Sense::click());
+                        let (rect, response) =
+                            ui.allocate_exact_size(egui::vec2(14.0, 14.0), egui::Sense::click());
                         ui.painter().circle_filled(rect.center(), 6.0, claude_color);
                         if response.clicked() {
-                            ui.ctx().open_url(egui::OpenUrl::new_tab("https://claude.ai"));
+                            ui.ctx()
+                                .open_url(egui::OpenUrl::new_tab("https://claude.ai"));
                         }
                     } else {
                         ui.hyperlink_to(
-                            egui::RichText::new("Made with Claude")
-                                .color(claude_color),
+                            egui::RichText::new("Made with Claude").color(claude_color),
                             "https://claude.ai",
                         );
                         // Claude logo (painted orange circle)
-                        let (rect, _response) = ui.allocate_exact_size(egui::vec2(14.0, 14.0), egui::Sense::hover());
+                        let (rect, _response) =
+                            ui.allocate_exact_size(egui::vec2(14.0, 14.0), egui::Sense::hover());
                         ui.painter().circle_filled(rect.center(), 6.0, claude_color);
                         ui.separator();
 
                         // Git info
                         let git_sha = option_env!("GIT_SHA").unwrap_or("dev");
-                        let short_sha = if git_sha.len() > 7 { &git_sha[..7] } else { git_sha };
+                        let short_sha = if git_sha.len() > 7 {
+                            &git_sha[..7]
+                        } else {
+                            git_sha
+                        };
                         ui.hyperlink_to(
                             egui::RichText::new(format!("#{}", short_sha)).small(),
-                            format!("https://github.com/amoeba/ac-pcap-parser/commit/{}", git_sha),
+                            format!(
+                                "https://github.com/amoeba/ac-pcap-parser/commit/{}",
+                                git_sha
+                            ),
                         );
                         ui.hyperlink_to(
                             egui::RichText::new("GitHub").small(),
@@ -646,11 +708,14 @@ impl eframe::App for PcapViewerApp {
                     .show(ctx, |ui| {
                         ui.horizontal(|ui| {
                             ui.heading("Detail");
-                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                if ui.button("×").clicked() {
-                                    self.show_detail_panel = false;
-                                }
-                            });
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui.button("×").clicked() {
+                                        self.show_detail_panel = false;
+                                    }
+                                },
+                            );
                         });
                         ui.separator();
 
@@ -700,23 +765,31 @@ impl eframe::App for PcapViewerApp {
                     } else {
                         egui::vec2(400.0, 200.0)
                     };
-                    let drop_rect = egui::Rect::from_center_size(
-                        rect.center(),
-                        drop_size,
-                    );
+                    let drop_rect = egui::Rect::from_center_size(rect.center(), drop_size);
                     ui.painter().rect_stroke(
                         drop_rect,
                         10.0,
                         egui::Stroke::new(2.0, egui::Color32::GRAY),
                     );
 
-                    ui.heading(if is_mobile { "Drop PCAP here" } else { "Drop PCAP file here" });
+                    ui.heading(if is_mobile {
+                        "Drop PCAP here"
+                    } else {
+                        "Drop PCAP file here"
+                    });
                     ui.add_space(if is_mobile { 10.0 } else { 20.0 });
                     ui.label("or");
                     ui.add_space(if is_mobile { 10.0 } else { 20.0 });
 
-                    let button_size = if is_mobile { [150.0, 35.0] } else { [200.0, 40.0] };
-                    if ui.add_sized(button_size, egui::Button::new("Load Example")).clicked() {
+                    let button_size = if is_mobile {
+                        [150.0, 35.0]
+                    } else {
+                        [200.0, 40.0]
+                    };
+                    if ui
+                        .add_sized(button_size, egui::Button::new("Load Example"))
+                        .clicked()
+                    {
                         should_load_example = true;
                     }
 
@@ -755,9 +828,11 @@ impl eframe::App for PcapViewerApp {
                 .show(ctx, |ui| {
                     ui.horizontal(|ui| {
                         ui.label("URL:");
-                        ui.add(egui::TextEdit::singleline(&mut self.url_input)
-                            .hint_text("https://example.com/file.pcap")
-                            .desired_width(300.0));
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.url_input)
+                                .hint_text("https://example.com/file.pcap")
+                                .desired_width(300.0),
+                        );
                     });
 
                     ui.add_space(10.0);
@@ -812,20 +887,32 @@ impl eframe::App for PcapViewerApp {
 
                     ui.horizontal(|ui| {
                         ui.label("Default Tab:");
-                        if ui.selectable_label(self.current_tab == Tab::Messages, "Messages").clicked() {
+                        if ui
+                            .selectable_label(self.current_tab == Tab::Messages, "Messages")
+                            .clicked()
+                        {
                             self.current_tab = Tab::Messages;
                         }
-                        if ui.selectable_label(self.current_tab == Tab::Fragments, "Fragments").clicked() {
+                        if ui
+                            .selectable_label(self.current_tab == Tab::Fragments, "Fragments")
+                            .clicked()
+                        {
                             self.current_tab = Tab::Fragments;
                         }
                     });
 
                     ui.horizontal(|ui| {
                         ui.label("Sort Order:");
-                        if ui.selectable_label(self.sort_ascending, "Ascending").clicked() {
+                        if ui
+                            .selectable_label(self.sort_ascending, "Ascending")
+                            .clicked()
+                        {
                             self.sort_ascending = true;
                         }
-                        if ui.selectable_label(!self.sort_ascending, "Descending").clicked() {
+                        if ui
+                            .selectable_label(!self.sort_ascending, "Descending")
+                            .clicked()
+                        {
                             self.sort_ascending = false;
                         }
                     });
@@ -860,7 +947,11 @@ impl eframe::App for PcapViewerApp {
                         ui.add_space(5.0);
 
                         let git_sha = option_env!("GIT_SHA").unwrap_or("dev");
-                        let short_sha = if git_sha.len() > 7 { &git_sha[..7] } else { git_sha };
+                        let short_sha = if git_sha.len() > 7 {
+                            &git_sha[..7]
+                        } else {
+                            git_sha
+                        };
                         ui.label(format!("Version: {}", short_sha));
 
                         ui.add_space(10.0);
@@ -885,7 +976,8 @@ impl eframe::App for PcapViewerApp {
                         let claude_color = egui::Color32::from_rgb(217, 119, 87);
                         ui.horizontal(|ui| {
                             // Claude logo
-                            let (rect, _) = ui.allocate_exact_size(egui::vec2(14.0, 14.0), egui::Sense::hover());
+                            let (rect, _) = ui
+                                .allocate_exact_size(egui::vec2(14.0, 14.0), egui::Sense::hover());
                             ui.painter().circle_filled(rect.center(), 6.0, claude_color);
                             ui.hyperlink_to(
                                 egui::RichText::new("Made with Claude").color(claude_color),
@@ -931,12 +1023,14 @@ impl PcapViewerApp {
         };
         ui.allocate_ui_with_layout(egui::vec2(width, 20.0), layout, |ui| {
             ui.selectable_label(is_selected, text)
-        }).inner
+        })
+        .inner
     }
 
     /// Render mobile table header
     fn mobile_header(ui: &mut egui::Ui, columns: &[MobileColumn], available_width: f32) {
-        let widths: Vec<f32> = columns.iter()
+        let widths: Vec<f32> = columns
+            .iter()
             .map(|c| available_width * c.width_pct)
             .collect();
 
@@ -960,8 +1054,7 @@ impl PcapViewerApp {
                 if let Some(idx) = self.selected_message {
                     if idx < self.messages.len() {
                         let tree_id = format!("message_tree_{}", idx);
-                        JsonTree::new(&tree_id, &self.messages[idx].data)
-                            .show(ui);
+                        JsonTree::new(&tree_id, &self.messages[idx].data).show(ui);
                     } else {
                         ui.label("No message selected");
                     }
@@ -974,8 +1067,7 @@ impl PcapViewerApp {
                     if idx < self.packets.len() {
                         if let Ok(value) = serde_json::to_value(&self.packets[idx]) {
                             let tree_id = format!("packet_tree_{}", idx);
-                            JsonTree::new(&tree_id, &value)
-                                .show(ui);
+                            JsonTree::new(&tree_id, &value).show(ui);
                         } else {
                             ui.label("Error displaying packet");
                         }
@@ -993,7 +1085,11 @@ impl PcapViewerApp {
     fn draw_sort_button(&mut self, ui: &mut egui::Ui) -> bool {
         let (rect, response) = ui.allocate_exact_size(egui::vec2(20.0, 20.0), egui::Sense::click());
         let clicked = response.clicked();
-        response.on_hover_text(if self.sort_ascending { "Sort descending" } else { "Sort ascending" });
+        response.on_hover_text(if self.sort_ascending {
+            "Sort descending"
+        } else {
+            "Sort ascending"
+        });
 
         let painter = ui.painter();
         let center = rect.center();
@@ -1069,10 +1165,20 @@ impl PcapViewerApp {
         let sort_ascending = self.sort_ascending;
         let total = self.messages.len();
 
-        let mut filtered: Vec<(usize, usize, String, String, String)> = self.messages.iter()
+        let mut filtered: Vec<(usize, usize, String, String, String)> = self
+            .messages
+            .iter()
             .enumerate()
             .filter(|(_, m)| search.is_empty() || m.message_type.to_lowercase().contains(&search))
-            .map(|(idx, m)| (idx, m.id, m.message_type.clone(), m.direction.clone(), m.opcode.clone()))
+            .map(|(idx, m)| {
+                (
+                    idx,
+                    m.id,
+                    m.message_type.clone(),
+                    m.direction.clone(),
+                    m.opcode.clone(),
+                )
+            })
             .collect();
 
         filtered.sort_by(|a, b| {
@@ -1081,7 +1187,11 @@ impl PcapViewerApp {
                 SortField::Type => a.2.cmp(&b.2),
                 SortField::Direction => a.3.cmp(&b.3),
             };
-            if sort_ascending { cmp } else { cmp.reverse() }
+            if sort_ascending {
+                cmp
+            } else {
+                cmp.reverse()
+            }
         });
 
         ui.horizontal(|ui| {
@@ -1095,11 +1205,26 @@ impl PcapViewerApp {
             if is_mobile {
                 ui.set_min_width(available_width);
                 let columns = [
-                    MobileColumn { header: "ID", width_pct: 0.12, right_align: false },
-                    MobileColumn { header: "Type", width_pct: 0.76, right_align: false },
-                    MobileColumn { header: "Dir", width_pct: 0.12, right_align: true },
+                    MobileColumn {
+                        header: "ID",
+                        width_pct: 0.12,
+                        right_align: false,
+                    },
+                    MobileColumn {
+                        header: "Type",
+                        width_pct: 0.76,
+                        right_align: false,
+                    },
+                    MobileColumn {
+                        header: "Dir",
+                        width_pct: 0.12,
+                        right_align: true,
+                    },
                 ];
-                let widths: Vec<f32> = columns.iter().map(|c| available_width * c.width_pct).collect();
+                let widths: Vec<f32> = columns
+                    .iter()
+                    .map(|c| available_width * c.width_pct)
+                    .collect();
 
                 egui::Grid::new("messages_grid")
                     .num_columns(3)
@@ -1111,7 +1236,9 @@ impl PcapViewerApp {
                         for (original_idx, id, msg_type, direction, _opcode) in &filtered {
                             let is_selected = self.selected_message == Some(*original_idx);
 
-                            if Self::mobile_cell(ui, widths[0], false, is_selected, id.to_string()).clicked() {
+                            if Self::mobile_cell(ui, widths[0], false, is_selected, id.to_string())
+                                .clicked()
+                            {
                                 self.selected_message = Some(*original_idx);
                                 self.show_detail_panel = true;
                             }
@@ -1121,7 +1248,9 @@ impl PcapViewerApp {
                             } else {
                                 msg_type.clone()
                             };
-                            if Self::mobile_cell(ui, widths[1], false, is_selected, display_type).clicked() {
+                            if Self::mobile_cell(ui, widths[1], false, is_selected, display_type)
+                                .clicked()
+                            {
                                 self.selected_message = Some(*original_idx);
                                 self.show_detail_panel = true;
                             }
@@ -1132,7 +1261,15 @@ impl PcapViewerApp {
                                 egui::Color32::from_rgb(100, 255, 150)
                             };
                             let dir_text = if direction == "Send" { "S" } else { "R" };
-                            if Self::mobile_cell(ui, widths[2], true, is_selected, egui::RichText::new(dir_text).color(dir_color)).clicked() {
+                            if Self::mobile_cell(
+                                ui,
+                                widths[2],
+                                true,
+                                is_selected,
+                                egui::RichText::new(dir_text).color(dir_color),
+                            )
+                            .clicked()
+                            {
                                 self.selected_message = Some(*original_idx);
                                 self.show_detail_panel = true;
                             }
@@ -1167,7 +1304,13 @@ impl PcapViewerApp {
                             } else {
                                 egui::Color32::from_rgb(100, 255, 150)
                             };
-                            if ui.selectable_label(is_selected, egui::RichText::new(direction).color(dir_color)).clicked() {
+                            if ui
+                                .selectable_label(
+                                    is_selected,
+                                    egui::RichText::new(direction).color(dir_color),
+                                )
+                                .clicked()
+                            {
                                 self.selected_message = Some(*original_idx);
                             }
                             if ui.selectable_label(is_selected, opcode).clicked() {
@@ -1186,16 +1329,20 @@ impl PcapViewerApp {
         let sort_ascending = self.sort_ascending;
         let total = self.packets.len();
 
-        let mut filtered: Vec<(usize, usize, u32, String, u32, u16)> = self.packets.iter()
+        let mut filtered: Vec<(usize, usize, u32, String, u32, u16)> = self
+            .packets
+            .iter()
             .enumerate()
-            .map(|(idx, p)| (
-                idx,
-                p.id,
-                p.header.sequence,
-                format!("{:?}", p.direction),
-                p.header.flags.bits(),
-                p.header.size,
-            ))
+            .map(|(idx, p)| {
+                (
+                    idx,
+                    p.id,
+                    p.header.sequence,
+                    format!("{:?}", p.direction),
+                    p.header.flags.bits(),
+                    p.header.size,
+                )
+            })
             .collect();
 
         filtered.sort_by(|a, b| {
@@ -1204,7 +1351,11 @@ impl PcapViewerApp {
                 SortField::Type => a.2.cmp(&b.2),
                 SortField::Direction => a.3.cmp(&b.3),
             };
-            if sort_ascending { cmp } else { cmp.reverse() }
+            if sort_ascending {
+                cmp
+            } else {
+                cmp.reverse()
+            }
         });
 
         ui.horizontal(|ui| {
@@ -1218,11 +1369,26 @@ impl PcapViewerApp {
             if is_mobile {
                 ui.set_min_width(available_width);
                 let columns = [
-                    MobileColumn { header: "ID", width_pct: 0.15, right_align: false },
-                    MobileColumn { header: "Seq", width_pct: 0.70, right_align: false },
-                    MobileColumn { header: "Dir", width_pct: 0.15, right_align: true },
+                    MobileColumn {
+                        header: "ID",
+                        width_pct: 0.15,
+                        right_align: false,
+                    },
+                    MobileColumn {
+                        header: "Seq",
+                        width_pct: 0.70,
+                        right_align: false,
+                    },
+                    MobileColumn {
+                        header: "Dir",
+                        width_pct: 0.15,
+                        right_align: true,
+                    },
                 ];
-                let widths: Vec<f32> = columns.iter().map(|c| available_width * c.width_pct).collect();
+                let widths: Vec<f32> = columns
+                    .iter()
+                    .map(|c| available_width * c.width_pct)
+                    .collect();
 
                 egui::Grid::new("packets_grid")
                     .num_columns(3)
@@ -1234,12 +1400,22 @@ impl PcapViewerApp {
                         for (original_idx, id, sequence, direction, _flags, _size) in &filtered {
                             let is_selected = self.selected_packet == Some(*original_idx);
 
-                            if Self::mobile_cell(ui, widths[0], false, is_selected, id.to_string()).clicked() {
+                            if Self::mobile_cell(ui, widths[0], false, is_selected, id.to_string())
+                                .clicked()
+                            {
                                 self.selected_packet = Some(*original_idx);
                                 self.show_detail_panel = true;
                             }
 
-                            if Self::mobile_cell(ui, widths[1], false, is_selected, sequence.to_string()).clicked() {
+                            if Self::mobile_cell(
+                                ui,
+                                widths[1],
+                                false,
+                                is_selected,
+                                sequence.to_string(),
+                            )
+                            .clicked()
+                            {
                                 self.selected_packet = Some(*original_idx);
                                 self.show_detail_panel = true;
                             }
@@ -1250,7 +1426,15 @@ impl PcapViewerApp {
                                 egui::Color32::from_rgb(100, 255, 150)
                             };
                             let dir_text = if direction == "Send" { "S" } else { "R" };
-                            if Self::mobile_cell(ui, widths[2], true, is_selected, egui::RichText::new(dir_text).color(dir_color)).clicked() {
+                            if Self::mobile_cell(
+                                ui,
+                                widths[2],
+                                true,
+                                is_selected,
+                                egui::RichText::new(dir_text).color(dir_color),
+                            )
+                            .clicked()
+                            {
                                 self.selected_packet = Some(*original_idx);
                                 self.show_detail_panel = true;
                             }
@@ -1279,7 +1463,10 @@ impl PcapViewerApp {
                             if ui.selectable_label(is_selected, id.to_string()).clicked() {
                                 self.selected_packet = Some(*original_idx);
                             }
-                            if ui.selectable_label(is_selected, sequence.to_string()).clicked() {
+                            if ui
+                                .selectable_label(is_selected, sequence.to_string())
+                                .clicked()
+                            {
                                 self.selected_packet = Some(*original_idx);
                             }
                             let dir_color = if direction == "Send" {
@@ -1287,10 +1474,19 @@ impl PcapViewerApp {
                             } else {
                                 egui::Color32::from_rgb(100, 255, 150)
                             };
-                            if ui.selectable_label(is_selected, egui::RichText::new(direction).color(dir_color)).clicked() {
+                            if ui
+                                .selectable_label(
+                                    is_selected,
+                                    egui::RichText::new(direction).color(dir_color),
+                                )
+                                .clicked()
+                            {
                                 self.selected_packet = Some(*original_idx);
                             }
-                            if ui.selectable_label(is_selected, format!("{:08X}", flags)).clicked() {
+                            if ui
+                                .selectable_label(is_selected, format!("{:08X}", flags))
+                                .clicked()
+                            {
                                 self.selected_packet = Some(*original_idx);
                             }
                             if ui.selectable_label(is_selected, size.to_string()).clicked() {
@@ -1311,7 +1507,8 @@ fn preview_files_being_dropped(ctx: &egui::Context) {
     if !ctx.input(|i| i.raw.hovered_files.is_empty()) {
         let text = "Drop PCAP file to load";
 
-        let painter = ctx.layer_painter(LayerId::new(Order::Foreground, Id::new("file_drop_target")));
+        let painter =
+            ctx.layer_painter(LayerId::new(Order::Foreground, Id::new("file_drop_target")));
 
         let screen_rect = ctx.screen_rect();
         painter.rect_filled(screen_rect, 0.0, Color32::from_black_alpha(192));

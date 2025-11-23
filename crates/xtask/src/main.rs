@@ -58,13 +58,7 @@ fn build_web(serve: bool, port: u16, small: bool) -> Result<()> {
 
     // Build WASM
     println!("Building WASM...");
-    let mut args = vec![
-        "build",
-        "-p",
-        "web",
-        "--target",
-        "wasm32-unknown-unknown",
-    ];
+    let mut args = vec!["build", "-p", "web", "--target", "wasm32-unknown-unknown"];
     if small {
         args.push("--profile=release-wasm");
     } else {
@@ -82,8 +76,7 @@ fn build_web(serve: bool, port: u16, small: bool) -> Result<()> {
 
     // Run wasm-bindgen
     println!("Generating JS bindings...");
-    let wasm_file = root
-        .join("target/wasm32-unknown-unknown/release/web.wasm");
+    let wasm_file = root.join("target/wasm32-unknown-unknown/release/web.wasm");
 
     let status = Command::new("wasm-bindgen")
         .args([
@@ -95,7 +88,9 @@ fn build_web(serve: bool, port: u16, small: bool) -> Result<()> {
             wasm_file.to_str().unwrap(),
         ])
         .status()
-        .context("Failed to run wasm-bindgen. Is it installed? Run: cargo install wasm-bindgen-cli")?;
+        .context(
+            "Failed to run wasm-bindgen. Is it installed? Run: cargo install wasm-bindgen-cli",
+        )?;
 
     if !status.success() {
         bail!("wasm-bindgen failed");
