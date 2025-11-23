@@ -396,7 +396,7 @@ impl eframe::App for PcapViewerApp {
         let screen_width = screen_rect.width();
         let screen_height = screen_rect.height();
         let is_mobile = is_mobile_viewport;
-        let is_tablet = viewport_width >= MOBILE_BREAKPOINT && viewport_width < TABLET_BREAKPOINT;
+        let is_tablet = (MOBILE_BREAKPOINT..TABLET_BREAKPOINT).contains(&viewport_width);
         let has_data = !self.messages.is_empty() || !self.packets.is_empty();
 
         // Debug mode string

@@ -26,7 +26,7 @@ impl<'a> BinaryReader<'a> {
     pub fn remaining(&self) -> usize {
         let pos = self.cursor.position() as usize;
         let len = self.cursor.get_ref().len();
-        if pos >= len { 0 } else { len - pos }
+        len.saturating_sub(pos)
     }
 
     pub fn read_u8(&mut self) -> Result<u8> {

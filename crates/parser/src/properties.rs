@@ -929,7 +929,7 @@ pub fn sound_type_name(key: u32) -> String {
         0xCC => "SkillDownVoid",
         _ => {
             // Handle TriggerActivated range (0x98-0xC9)
-            if key >= 0x98 && key <= 0xC9 {
+            if (0x98..=0xC9).contains(&key) {
                 return format!("TriggerActivated{}", key - 0x97);
             }
             return format!("Sound_{}", key);

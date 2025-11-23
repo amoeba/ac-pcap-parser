@@ -123,7 +123,7 @@ impl PacketParser {
 
                                 // Determine direction from port
                                 let src_port = u16::from_be_bytes([data[34], data[35]]);
-                                let direction = if src_port >= 9000 && src_port <= 9013 {
+                                let direction = if (9000..=9013).contains(&src_port) {
                                     Direction::Recv // From server
                                 } else {
                                     Direction::Send // To server
