@@ -66,6 +66,12 @@ pub struct PcapViewerApp {
 
     // Base pixels_per_point for scaling calculations (set on first frame)
     base_pixels_per_point: Option<f32>,
+
+    // Menu dialog state
+    show_url_dialog: bool,
+    url_input: String,
+    show_settings: bool,
+    show_about: bool,
 }
 
 impl Default for PcapViewerApp {
@@ -87,6 +93,10 @@ impl Default for PcapViewerApp {
             fetched_data: Arc::new(Mutex::new(None)),
             initial_url: None,
             base_pixels_per_point: None,
+            show_url_dialog: false,
+            url_input: String::new(),
+            show_settings: false,
+            show_about: false,
         }
     }
 }
@@ -177,6 +187,95 @@ impl PcapViewerApp {
     fn load_from_url(&mut self, _url: String, _ctx: &egui::Context) {
         // Native: URL loading not supported
         self.status_message = "URL loading not supported in native mode".to_string();
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn trigger_file_picker(&mut self, ctx: &egui::Context) {
+        use wasm_bindgen::prelude::*;
+        use wasm_bindgen::JsCast;
+
+        let document = match web_sys::window().and_then(|w| w.document()) {
+            Some(d) => d,
+            None => return,
+        };
+
+        // Create a hidden file input element
+        let input: web_sys::HtmlInputElement = match document.create_element("input") {
+            Ok(el) => match el.dyn_into() {
+                Ok(input) => input,
+                Err(_) => return,
+            },
+            Err(_) => return,
+        };
+
+        input.set_type("file");
+        input.set_accept(".pcap,.pcapng");
+        input.style().set_property("display", "none").ok();
+
+        // Add to document temporarily
+        if document.body().map(|b| b.append_child(&input)).is_err() {
+            return;
+        }
+
+        // Set up the change handler
+        let fetched_data = self.fetched_data.clone();
+        let ctx_clone = ctx.clone();
+        let input_clone = input.clone();
+
+        let closure = Closure::wrap(Box::new(move |_event: web_sys::Event| {
+            let files = match input_clone.files() {
+                Some(f) => f,
+                None => return,
+            };
+
+            let file = match files.get(0) {
+                Some(f) => f,
+                None => return,
+            };
+
+            let fetched_data = fetched_data.clone();
+            let ctx = ctx_clone.clone();
+            let input_to_remove = input_clone.clone();
+
+            let reader = match web_sys::FileReader::new() {
+                Ok(r) => r,
+                Err(_) => return,
+            };
+
+            let reader_clone = reader.clone();
+            let onload = Closure::wrap(Box::new(move |_event: web_sys::Event| {
+                if let Ok(result) = reader_clone.result() {
+                    if let Some(array_buffer) = result.dyn_ref::<js_sys::ArrayBuffer>() {
+                        let uint8_array = js_sys::Uint8Array::new(array_buffer);
+                        let bytes = uint8_array.to_vec();
+
+                        if let Ok(mut data) = fetched_data.lock() {
+                            *data = Some(bytes);
+                        }
+                        ctx.request_repaint();
+                    }
+                }
+                // Clean up the input element
+                input_to_remove.remove();
+            }) as Box<dyn FnMut(_)>);
+
+            reader.set_onload(Some(onload.as_ref().unchecked_ref()));
+            onload.forget();
+
+            reader.read_as_array_buffer(&file).ok();
+        }) as Box<dyn FnMut(_)>);
+
+        input.set_onchange(Some(closure.as_ref().unchecked_ref()));
+        closure.forget();
+
+        // Trigger the file picker
+        input.click();
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn trigger_file_picker(&mut self, _ctx: &egui::Context) {
+        // Native: Use drag-and-drop or show a message
+        self.status_message = "Please drag and drop a PCAP file to open it".to_string();
     }
 }
 
@@ -302,6 +401,63 @@ impl eframe::App for PcapViewerApp {
 
         // Debug mode string
         let mode_str = if is_mobile { "M" } else if is_tablet { "T" } else { "D" };
+
+        // Track menu actions to execute after borrow ends
+        let mut open_file_clicked = false;
+        let mut open_url_clicked = false;
+        let mut quit_clicked = false;
+
+        // Menu bar panel
+        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                ui.menu_button("File", |ui| {
+                    ui.menu_button("Open", |ui| {
+                        if ui.button("From File...").clicked() {
+                            open_file_clicked = true;
+                            ui.close_menu();
+                        }
+                        if ui.button("From URL...").clicked() {
+                            open_url_clicked = true;
+                            ui.close_menu();
+                        }
+                    });
+
+                    ui.separator();
+
+                    if ui.button("Settings...").clicked() {
+                        self.show_settings = true;
+                        ui.close_menu();
+                    }
+
+                    // Only show Quit on desktop
+                    #[cfg(not(target_arch = "wasm32"))]
+                    {
+                        ui.separator();
+                        if ui.button("Quit").clicked() {
+                            quit_clicked = true;
+                            ui.close_menu();
+                        }
+                    }
+                });
+
+                ui.menu_button("About", |ui| {
+                    if ui.button("About AC PCAP Parser").clicked() {
+                        self.show_about = true;
+                        ui.close_menu();
+                    }
+                });
+            });
+        });
+
+        // Handle menu actions
+        if open_url_clicked {
+            self.show_url_dialog = true;
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        if quit_clicked {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+        }
 
         // Top panel with tabs and controls - responsive
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
@@ -580,6 +736,174 @@ impl eframe::App for PcapViewerApp {
 
         if should_load_example {
             self.load_example(ctx);
+        }
+
+        // Handle file picker action
+        if open_file_clicked {
+            self.trigger_file_picker(ctx);
+        }
+
+        // URL input dialog
+        if self.show_url_dialog {
+            let mut close_dialog = false;
+            let mut load_url = false;
+
+            egui::Window::new("Open from URL")
+                .collapsible(false)
+                .resizable(false)
+                .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+                .show(ctx, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.label("URL:");
+                        ui.add(egui::TextEdit::singleline(&mut self.url_input)
+                            .hint_text("https://example.com/file.pcap")
+                            .desired_width(300.0));
+                    });
+
+                    ui.add_space(10.0);
+
+                    ui.horizontal(|ui| {
+                        if ui.button("Load").clicked() {
+                            load_url = true;
+                        }
+                        if ui.button("Cancel").clicked() {
+                            close_dialog = true;
+                        }
+                    });
+                });
+
+            if load_url && !self.url_input.is_empty() {
+                let url = self.url_input.clone();
+                self.url_input.clear();
+                self.show_url_dialog = false;
+                self.load_from_url(url, ctx);
+            } else if close_dialog {
+                self.url_input.clear();
+                self.show_url_dialog = false;
+            }
+        }
+
+        // Settings window
+        if self.show_settings {
+            let mut close_settings = false;
+
+            egui::Window::new("Settings")
+                .collapsible(false)
+                .resizable(false)
+                .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+                .show(ctx, |ui| {
+                    ui.heading("Appearance");
+                    ui.separator();
+
+                    ui.horizontal(|ui| {
+                        ui.label("Theme:");
+                        if ui.selectable_label(self.dark_mode, "Dark").clicked() {
+                            self.dark_mode = true;
+                        }
+                        if ui.selectable_label(!self.dark_mode, "Light").clicked() {
+                            self.dark_mode = false;
+                        }
+                    });
+
+                    ui.add_space(10.0);
+
+                    ui.heading("Default View");
+                    ui.separator();
+
+                    ui.horizontal(|ui| {
+                        ui.label("Default Tab:");
+                        if ui.selectable_label(self.current_tab == Tab::Messages, "Messages").clicked() {
+                            self.current_tab = Tab::Messages;
+                        }
+                        if ui.selectable_label(self.current_tab == Tab::Fragments, "Fragments").clicked() {
+                            self.current_tab = Tab::Fragments;
+                        }
+                    });
+
+                    ui.horizontal(|ui| {
+                        ui.label("Sort Order:");
+                        if ui.selectable_label(self.sort_ascending, "Ascending").clicked() {
+                            self.sort_ascending = true;
+                        }
+                        if ui.selectable_label(!self.sort_ascending, "Descending").clicked() {
+                            self.sort_ascending = false;
+                        }
+                    });
+
+                    ui.add_space(20.0);
+
+                    ui.horizontal(|ui| {
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                            if ui.button("Close").clicked() {
+                                close_settings = true;
+                            }
+                        });
+                    });
+                });
+
+            if close_settings {
+                self.show_settings = false;
+            }
+        }
+
+        // About window
+        if self.show_about {
+            let mut close_about = false;
+
+            egui::Window::new("About AC PCAP Parser")
+                .collapsible(false)
+                .resizable(false)
+                .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+                .show(ctx, |ui| {
+                    ui.vertical_centered(|ui| {
+                        ui.heading("AC PCAP Parser");
+                        ui.add_space(5.0);
+
+                        let git_sha = option_env!("GIT_SHA").unwrap_or("dev");
+                        let short_sha = if git_sha.len() > 7 { &git_sha[..7] } else { git_sha };
+                        ui.label(format!("Version: {}", short_sha));
+
+                        ui.add_space(10.0);
+                        ui.separator();
+                        ui.add_space(10.0);
+
+                        ui.label("A web-based parser for Asheron's Call");
+                        ui.label("PCAP network traffic files.");
+
+                        ui.add_space(10.0);
+
+                        ui.hyperlink_to(
+                            "View on GitHub",
+                            "https://github.com/amoeba/ac-pcap-parser",
+                        );
+
+                        ui.add_space(10.0);
+                        ui.separator();
+                        ui.add_space(10.0);
+
+                        // Claude branding
+                        let claude_color = egui::Color32::from_rgb(217, 119, 87);
+                        ui.horizontal(|ui| {
+                            // Claude logo
+                            let (rect, _) = ui.allocate_exact_size(egui::vec2(14.0, 14.0), egui::Sense::hover());
+                            ui.painter().circle_filled(rect.center(), 6.0, claude_color);
+                            ui.hyperlink_to(
+                                egui::RichText::new("Made with Claude").color(claude_color),
+                                "https://claude.ai",
+                            );
+                        });
+
+                        ui.add_space(20.0);
+
+                        if ui.button("Close").clicked() {
+                            close_about = true;
+                        }
+                    });
+                });
+
+            if close_about {
+                self.show_about = false;
+            }
         }
     }
 }
