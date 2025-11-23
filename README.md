@@ -320,7 +320,7 @@ cargo xtask desktop --run
 cargo xtask desktop --release --run
 
 # Or directly with cargo
-cargo run -p web --bin ac-pcap-viewer
+cargo run -p web --bin ac-pcap-viewer --features desktop
 ```
 
 ### Building Web
