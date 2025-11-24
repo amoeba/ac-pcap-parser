@@ -1,15 +1,18 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag to release (e.g., v0.1.0)'
-        required: true
-        type: string
+  # TEMP: Testing PR trigger - revert before merge
+  pull_request:
+    branches: [main]
+  # push:
+  #   tags:
+  #     - 'v*'
+  # workflow_dispatch:
+  #   inputs:
+  #     tag:
+  #       description: 'Tag to release (e.g., v0.1.0)'
+  #       required: true
+  #       type: string
 
 env:
   CARGO_TERM_COLOR: always
@@ -227,6 +230,8 @@ jobs:
   # ====================
 
   release:
+    # TEMP: Disabled for testing - revert before merge
+    if: false
     name: Create Release
     runs-on: ubuntu-latest
     needs: [build-native, build-wasm]
