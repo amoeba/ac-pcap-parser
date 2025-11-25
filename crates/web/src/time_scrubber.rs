@@ -196,6 +196,8 @@ impl TimeScrubber {
                     if let (Some(last_point), Some(first_point)) = (points.last(), points.first()) {
                         fill_points.push(egui::pos2(last_point.x, rect.max.y));
                         fill_points.push(egui::pos2(first_point.x, rect.max.y));
+                        // Complete the path back to the start point
+                        fill_points.push(egui::pos2(first_point.x, first_point.y));
                     }
 
                     let fill_color = if ui.visuals().dark_mode {
@@ -204,11 +206,11 @@ impl TimeScrubber {
                         egui::Color32::from_rgba_unmultiplied(50, 100, 200, 50)
                     };
 
-                    // Use PathShape instead of convex_polygon since our shape isn't convex
+                    // Use PathShape with closed=false since we manually close the path
                     use egui::epaint::{PathShape, PathStroke};
                     painter.add(PathShape {
                         points: fill_points,
-                        closed: true,
+                        closed: false,
                         fill: fill_color,
                         stroke: PathStroke::default(),
                     });
