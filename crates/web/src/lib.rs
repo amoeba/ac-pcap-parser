@@ -1132,7 +1132,9 @@ impl PcapViewerApp {
                     if let Some(idx) = self.selected_message {
                         if idx < self.messages.len() {
                             let tree_id = format!("message_tree_{}", idx);
-                            JsonTree::new(&tree_id, &self.messages[idx].data).show(ui);
+                            JsonTree::new(&tree_id, &self.messages[idx].data)
+                                .default_expand(egui_json_tree::DefaultExpand::ToLevel(1))
+                                .show(ui);
                         } else {
                             ui.label("No message selected");
                         }
@@ -1145,7 +1147,9 @@ impl PcapViewerApp {
                         if idx < self.packets.len() {
                             if let Ok(value) = serde_json::to_value(&self.packets[idx]) {
                                 let tree_id = format!("packet_tree_{}", idx);
-                                JsonTree::new(&tree_id, &value).show(ui);
+                                JsonTree::new(&tree_id, &value)
+                                    .default_expand(egui_json_tree::DefaultExpand::ToLevel(1))
+                                    .show(ui);
                             } else {
                                 ui.label("Error displaying packet");
                             }
