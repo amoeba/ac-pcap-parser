@@ -1346,7 +1346,10 @@ impl PcapViewerApp {
         egui::ScrollArea::both()
             .auto_shrink([false, false])
             .show(ui, |ui| {
-                ui.label(job);
+                // Set layout to prevent wrapping
+                ui.with_layout(egui::Layout::left_to_right(egui::Align::Min), |ui| {
+                    ui.add(egui::Label::new(job).extend());
+                });
             });
     }
 
