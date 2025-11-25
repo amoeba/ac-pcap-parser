@@ -192,8 +192,13 @@ impl TimeScrubber {
                 // Fill area under curve
                 if points.len() > 1 {
                     let mut fill_points = points.clone();
-                    fill_points.push(egui::pos2(rect.max.x, rect.max.y));
-                    fill_points.push(egui::pos2(rect.min.x, rect.max.y));
+                    // Close the polygon properly at the bottom corners
+                    if let Some(last_point) = points.last() {
+                        fill_points.push(egui::pos2(last_point.x, rect.max.y));
+                    }
+                    if let Some(first_point) = points.first() {
+                        fill_points.push(egui::pos2(first_point.x, rect.max.y));
+                    }
 
                     let fill_color = if ui.visuals().dark_mode {
                         egui::Color32::from_rgba_unmultiplied(100, 150, 255, 50)
@@ -297,17 +302,23 @@ impl TimeScrubber {
                 self.drag_start = None;
             }
 
-            // Handle single click (scroll to time)
+            // Handle single click
             if response.clicked() {
                 if let Some(clicked_time) = self.hover_time {
-                    // Find the index of the packet closest to this time
-                    // This will be handled by the caller
-                    // For now, just store it so we can return it
-                    clicked_index = Some(0); // Placeholder - will be computed by caller
-
-                    // Also update hover_time for the caller to use
-                    self.hover_time = Some(clicked_time);
+                    // If there's a selection active, clear it
+                    if !selected_range.is_full_range(data_range.min, data_range.max) {
+                        self.reset_selection();
+                    } else {
+                        // Otherwise scroll to time
+                        clicked_index = Some(0); // Placeholder - will be computed by caller
+                        self.hover_time = Some(clicked_time);
+                    }
                 }
+            }
+
+            // Handle ESC key to clear selection
+            if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                self.reset_selection();
             }
 
             // Show tooltip after all interactions (this consumes response)

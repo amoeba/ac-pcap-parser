@@ -84,8 +84,9 @@ pub struct PcapViewerApp {
     show_settings: bool,
     show_about: bool,
 
-    // Time scrubber
-    time_scrubber: TimeScrubber,
+    // Time scrubbers (separate for messages and fragments)
+    messages_scrubber: TimeScrubber,
+    fragments_scrubber: TimeScrubber,
 
     // Desktop: pending file from file dialog
     #[cfg(all(not(target_arch = "wasm32"), feature = "desktop"))]
@@ -116,7 +117,8 @@ impl Default for PcapViewerApp {
             url_input: String::new(),
             show_settings: false,
             show_about: false,
-            time_scrubber: TimeScrubber::new(),
+            messages_scrubber: TimeScrubber::new(),
+            fragments_scrubber: TimeScrubber::new(),
             #[cfg(all(not(target_arch = "wasm32"), feature = "desktop"))]
             pending_file_path: None,
         }
@@ -166,9 +168,16 @@ impl PcapViewerApp {
                     Some(0)
                 };
 
-                // Update time scrubber with packet timestamps
-                let timestamps: Vec<f64> = self.packets.iter().map(|p| p.timestamp).collect();
-                self.time_scrubber.update_density(&timestamps);
+                // Update time scrubbers
+                // Messages scrubber uses message timestamps
+                let message_timestamps: Vec<f64> =
+                    self.messages.iter().map(|m| m.timestamp).collect();
+                self.messages_scrubber.update_density(&message_timestamps);
+
+                // Fragments scrubber uses packet timestamps
+                let packet_timestamps: Vec<f64> =
+                    self.packets.iter().map(|p| p.timestamp).collect();
+                self.fragments_scrubber.update_density(&packet_timestamps);
             }
             Err(e) => {
                 self.status_message = format!("Error parsing PCAP: {}", e);
@@ -750,16 +759,34 @@ impl eframe::App for PcapViewerApp {
         });
 
         // Time scrubber panel (only show if we have data)
+        // Show appropriate scrubber based on current tab
         let mut clicked_time: Option<f64> = None;
-        if has_data && self.time_scrubber.has_data() {
-            egui::TopBottomPanel::top("time_scrubber_panel")
-                .resizable(false)
-                .show(ctx, |ui| {
-                    // Show time scrubber and check if user clicked
-                    if self.time_scrubber.show(ui).is_some() {
-                        clicked_time = self.time_scrubber.get_hover_time();
-                    }
-                });
+        if has_data {
+            // Check which scrubber has data
+            let scrubber_has_data = match self.current_tab {
+                Tab::Messages => self.messages_scrubber.has_data(),
+                Tab::Fragments => self.fragments_scrubber.has_data(),
+            };
+
+            if scrubber_has_data {
+                egui::TopBottomPanel::top("time_scrubber_panel")
+                    .resizable(false)
+                    .show(ctx, |ui| {
+                        // Show appropriate scrubber
+                        let result = match self.current_tab {
+                            Tab::Messages => self.messages_scrubber.show(ui),
+                            Tab::Fragments => self.fragments_scrubber.show(ui),
+                        };
+
+                        // Check if user clicked
+                        if result.is_some() {
+                            clicked_time = match self.current_tab {
+                                Tab::Messages => self.messages_scrubber.get_hover_time(),
+                                Tab::Fragments => self.fragments_scrubber.get_hover_time(),
+                            };
+                        }
+                    });
+            }
         }
 
         // Detail panel - responsive layout:
@@ -1511,7 +1538,7 @@ impl PcapViewerApp {
         let sort_field = self.sort_field;
         let sort_ascending = self.sort_ascending;
         let total = self.messages.len();
-        let time_filter = self.time_scrubber.get_selected_range().cloned();
+        let time_filter = self.messages_scrubber.get_selected_range().cloned();
 
         let mut filtered: Vec<(usize, usize, String, String, String)> = self
             .messages
@@ -1689,7 +1716,7 @@ impl PcapViewerApp {
         let sort_field = self.sort_field;
         let sort_ascending = self.sort_ascending;
         let total = self.packets.len();
-        let time_filter = self.time_scrubber.get_selected_range().cloned();
+        let time_filter = self.fragments_scrubber.get_selected_range().cloned();
 
         let mut filtered: Vec<(usize, usize, u32, String, u32, u16)> = self
             .packets
