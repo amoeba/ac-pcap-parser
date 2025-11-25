@@ -140,7 +140,8 @@ impl TimeScrubber {
                     }
 
                     // Show time range
-                    let range_text = if selected_range.is_full_range(data_range.min, data_range.max) {
+                    let range_text = if selected_range.is_full_range(data_range.min, data_range.max)
+                    {
                         "All data".to_string()
                     } else {
                         format!(
@@ -170,7 +171,9 @@ impl TimeScrubber {
             painter.rect_filled(rect, 2.0, ui.visuals().extreme_bg_color);
 
             // Calculate max density for normalization
-            let max_density = self.density_data.iter()
+            let max_density = self
+                .density_data
+                .iter()
                 .map(|(_, d)| *d)
                 .fold(0.0f32, f32::max);
 
@@ -179,7 +182,8 @@ impl TimeScrubber {
                 let mut points: Vec<egui::Pos2> = Vec::new();
 
                 for (time, density) in &self.density_data {
-                    let x = rect.min.x + ((*time - data_range.min) / time_range) as f32 * rect.width();
+                    let x =
+                        rect.min.x + ((*time - data_range.min) / time_range) as f32 * rect.width();
                     let normalized_density = density / max_density;
                     let y = rect.max.y - normalized_density * height;
                     points.push(egui::pos2(x, y));
@@ -208,14 +212,19 @@ impl TimeScrubber {
                     } else {
                         egui::Color32::from_rgb(50, 100, 200)
                     };
-                    painter.add(egui::Shape::line(points, egui::Stroke::new(2.0, line_color)));
+                    painter.add(egui::Shape::line(
+                        points,
+                        egui::Stroke::new(2.0, line_color),
+                    ));
                 }
             }
 
             // Draw selected range overlay
             if !selected_range.is_full_range(data_range.min, data_range.max) {
-                let sel_start_x = rect.min.x + ((selected_range.min - data_range.min) / time_range) as f32 * rect.width();
-                let sel_end_x = rect.min.x + ((selected_range.max - data_range.min) / time_range) as f32 * rect.width();
+                let sel_start_x = rect.min.x
+                    + ((selected_range.min - data_range.min) / time_range) as f32 * rect.width();
+                let sel_end_x = rect.min.x
+                    + ((selected_range.max - data_range.min) / time_range) as f32 * rect.width();
 
                 let selection_rect = egui::Rect::from_min_max(
                     egui::pos2(sel_start_x, rect.min.y),
@@ -231,8 +240,16 @@ impl TimeScrubber {
 
                 // Draw range borders
                 let border_color = egui::Color32::from_rgb(255, 200, 100);
-                painter.vline(sel_start_x, rect.y_range(), egui::Stroke::new(2.0, border_color));
-                painter.vline(sel_end_x, rect.y_range(), egui::Stroke::new(2.0, border_color));
+                painter.vline(
+                    sel_start_x,
+                    rect.y_range(),
+                    egui::Stroke::new(2.0, border_color),
+                );
+                painter.vline(
+                    sel_end_x,
+                    rect.y_range(),
+                    egui::Stroke::new(2.0, border_color),
+                );
             }
 
             // Handle interactions

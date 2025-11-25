@@ -122,7 +122,8 @@ impl PacketParser {
                         PcapBlockOwned::Legacy(packet) => {
                             let data = packet.data;
                             // Extract timestamp (seconds + microseconds)
-                            let timestamp = packet.ts_sec as f64 + (packet.ts_usec as f64 / 1_000_000.0);
+                            let timestamp =
+                                packet.ts_sec as f64 + (packet.ts_usec as f64 / 1_000_000.0);
 
                             // Skip to UDP payload (Ethernet + IP + UDP headers = 42 bytes)
                             if data.len() > 42 {

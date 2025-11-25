@@ -834,13 +834,16 @@ impl eframe::App for PcapViewerApp {
             // Find the closest packet/message to the clicked time
             match self.current_tab {
                 Tab::Messages => {
-                    let closest_idx = self.messages
+                    let closest_idx = self
+                        .messages
                         .iter()
                         .enumerate()
                         .min_by(|(_, a), (_, b)| {
                             let dist_a = (a.timestamp - time).abs();
                             let dist_b = (b.timestamp - time).abs();
-                            dist_a.partial_cmp(&dist_b).unwrap_or(std::cmp::Ordering::Equal)
+                            dist_a
+                                .partial_cmp(&dist_b)
+                                .unwrap_or(std::cmp::Ordering::Equal)
                         })
                         .map(|(idx, _)| idx);
 
@@ -849,13 +852,16 @@ impl eframe::App for PcapViewerApp {
                     }
                 }
                 Tab::Fragments => {
-                    let closest_idx = self.packets
+                    let closest_idx = self
+                        .packets
                         .iter()
                         .enumerate()
                         .min_by(|(_, a), (_, b)| {
                             let dist_a = (a.timestamp - time).abs();
                             let dist_b = (b.timestamp - time).abs();
-                            dist_a.partial_cmp(&dist_b).unwrap_or(std::cmp::Ordering::Equal)
+                            dist_a
+                                .partial_cmp(&dist_b)
+                                .unwrap_or(std::cmp::Ordering::Equal)
                         })
                         .map(|(idx, _)| idx);
 
@@ -1513,7 +1519,8 @@ impl PcapViewerApp {
             .enumerate()
             .filter(|(_, m)| {
                 // Apply search filter
-                let matches_search = search.is_empty() || m.message_type.to_lowercase().contains(&search);
+                let matches_search =
+                    search.is_empty() || m.message_type.to_lowercase().contains(&search);
 
                 // Apply time filter
                 let matches_time = if let Some(ref range) = time_filter {
