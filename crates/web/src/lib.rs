@@ -1182,25 +1182,28 @@ impl PcapViewerApp {
 
     /// Extract binary data from a message
     fn extract_message_binary(&self, message: &ParsedMessage) -> Option<Vec<u8>> {
-        // Try to get RawData field from the message JSON
-        if let Some(raw_data_str) = message.data.get("RawData").and_then(|v| v.as_str()) {
-            // RawData is hex-encoded
-            if let Ok(bytes) = hex::decode(raw_data_str) {
-                return Some(bytes);
-            }
+        // Use the raw_bytes field which contains the original message bytes
+        if !message.raw_bytes.is_empty() {
+            return Some(message.raw_bytes.clone());
         }
         None
     }
 
     /// Extract binary data from a packet fragment
     fn extract_packet_binary(&self, packet: &ParsedPacket) -> Option<Vec<u8>> {
-        // Get the fragment data (base64-encoded)
+        // First, try to use the raw payload which has all packet data
+        if !packet.raw_payload.is_empty() {
+            return Some(packet.raw_payload.clone());
+        }
+
+        // Fall back to fragment data (base64-encoded) if available
         if let Some(ref fragment) = packet.fragment {
             use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
             if let Ok(bytes) = BASE64.decode(&fragment.data) {
                 return Some(bytes);
             }
         }
+
         None
     }
 
@@ -1339,7 +1342,12 @@ impl PcapViewerApp {
             );
         }
 
-        ui.label(job);
+        // Wrap in horizontal and vertical scroll area
+        egui::ScrollArea::both()
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
+                ui.label(job);
+            });
     }
 
     /// Draw a sort direction button with custom painted arrow icon
