@@ -750,12 +750,14 @@ impl eframe::App for PcapViewerApp {
         if show_detail {
             if is_mobile {
                 // Mobile: Bottom panel (stacked layout)
-                let panel_height = (screen_height * 0.45).max(200.0);
+                let default_height = (screen_height * 0.45).max(200.0);
+                let min_height = 150.0;
+                let max_height = screen_height * 0.8;
 
                 egui::TopBottomPanel::bottom("detail_panel_bottom")
-                    .default_height(panel_height)
-                    .height_range(panel_height..=panel_height)
-                    .resizable(false)
+                    .default_height(default_height)
+                    .height_range(min_height..=max_height)
+                    .resizable(true)
                     .show(ctx, |ui| {
                         ui.horizontal(|ui| {
                             ui.heading("Detail");
@@ -778,16 +780,18 @@ impl eframe::App for PcapViewerApp {
                     });
             } else {
                 // Desktop/Tablet: Right side panel
-                let panel_width = if is_tablet {
+                let default_width = if is_tablet {
                     (screen_width * 0.35).max(200.0)
                 } else {
                     (screen_width * 0.35).clamp(300.0, 500.0)
                 };
+                let min_width = 200.0;
+                let max_width = screen_width * 0.7;
 
                 egui::SidePanel::right("detail_panel_right")
-                    .default_width(panel_width)
-                    .width_range(panel_width..=panel_width)
-                    .resizable(false)
+                    .default_width(default_width)
+                    .width_range(min_width..=max_width)
+                    .resizable(true)
                     .show(ctx, |ui| {
                         ui.heading("Detail");
                         ui.separator();
