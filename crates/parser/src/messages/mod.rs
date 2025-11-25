@@ -19,6 +19,8 @@ pub struct ParsedMessage {
     pub direction: String,
     #[serde(rename = "OpCode")]
     pub opcode: String,
+    #[serde(rename = "Timestamp")]
+    pub timestamp: f64, // Seconds since epoch (with microsecond precision)
     #[serde(skip)]
     pub raw_bytes: Vec<u8>,
 }
@@ -49,6 +51,7 @@ pub fn parse_message(data: &[u8], id: usize) -> Result<ParsedMessage> {
             }),
             direction: "Unknown".to_string(),
             opcode: format!("{:04X}", opcode),
+            timestamp: 0.0,
             raw_bytes: Vec::new(),
         }
     };
@@ -167,6 +170,7 @@ fn parse_s2c_message(
         data,
         direction: "Recv".to_string(),
         opcode: format!("{:04X}", opcode),
+        timestamp: 0.0,
         raw_bytes: Vec::new(),
     })
 }
@@ -212,6 +216,7 @@ fn parse_c2s_message(
         data,
         direction: "Send".to_string(),
         opcode: format!("{:04X}", opcode),
+        timestamp: 0.0,
         raw_bytes: Vec::new(),
     })
 }

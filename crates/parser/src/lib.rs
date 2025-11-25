@@ -71,6 +71,8 @@ pub struct ParsedPacket {
     pub fragment: Option<FragmentInfo>,
     #[serde(rename = "Id")]
     pub id: usize,
+    #[serde(rename = "Timestamp")]
+    pub timestamp: f64, // Seconds since epoch (with microsecond precision)
     #[serde(skip)]
     pub raw_payload: Vec<u8>,
 }
@@ -119,6 +121,9 @@ impl PacketParser {
                     match block {
                         PcapBlockOwned::Legacy(packet) => {
                             let data = packet.data;
+                            // Extract timestamp (seconds + microseconds)
+                            let timestamp =
+                                packet.ts_sec as f64 + (packet.ts_usec as f64 / 1_000_000.0);
 
                             // Skip to UDP payload (Ethernet + IP + UDP headers = 42 bytes)
                             if data.len() > 42 {
@@ -135,6 +140,7 @@ impl PacketParser {
                                 match self.parse_packet(
                                     udp_payload,
                                     direction,
+                                    timestamp,
                                     &mut packet_id,
                                     &mut message_id,
                                 ) {
@@ -171,6 +177,7 @@ impl PacketParser {
         &mut self,
         data: &[u8],
         direction: Direction,
+        timestamp: f64,
         packet_id: &mut usize,
         message_id: &mut usize,
     ) -> Result<(Vec<ParsedPacket>, Vec<messages::ParsedMessage>)> {
@@ -200,13 +207,14 @@ impl PacketParser {
                 messages: Vec::new(),
                 fragment: None,
                 id: *packet_id,
+                timestamp,
                 raw_payload,
             };
             *packet_id += 1;
 
             if header.flags.contains(PacketHeaderFlags::BLOB_FRAGMENTS) {
                 while (reader.position() as usize) < packet_end && reader.remaining() > 0 {
-                    match self.parse_fragment(&mut reader, direction, message_id) {
+                    match self.parse_fragment(&mut reader, direction, timestamp, message_id) {
                         Ok((frag_info, msgs)) => {
                             parsed_packet.fragment = Some(frag_info);
                             for msg in msgs {
@@ -236,6 +244,7 @@ impl PacketParser {
         &mut self,
         reader: &mut BinaryReader,
         direction: Direction,
+        timestamp: f64,
         message_id: &mut usize,
     ) -> Result<(FragmentInfo, Vec<messages::ParsedMessage>)> {
         let mut parsed_messages = Vec::new();
@@ -297,6 +306,7 @@ impl PacketParser {
                         Direction::Send => "Send".to_string(),
                         Direction::Recv => "Recv".to_string(),
                     };
+                    parsed.timestamp = timestamp;
                     parsed_messages.push(parsed);
                     *message_id += 1;
                 }

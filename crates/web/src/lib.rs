@@ -2,10 +2,13 @@
 //!
 //! A drag-and-drop web interface built with egui for parsing AC PCAP files.
 
+mod time_scrubber;
+
 use ac_parser::{messages::ParsedMessage, PacketParser, ParsedPacket};
 use eframe::egui;
 use egui_json_tree::JsonTree;
 use std::sync::{Arc, Mutex};
+use time_scrubber::TimeScrubber;
 
 #[derive(Default, PartialEq, Eq, Clone, Copy)]
 enum Tab {
@@ -81,6 +84,10 @@ pub struct PcapViewerApp {
     show_settings: bool,
     show_about: bool,
 
+    // Time scrubbers (separate for messages and fragments)
+    messages_scrubber: TimeScrubber,
+    fragments_scrubber: TimeScrubber,
+
     // Desktop: pending file from file dialog
     #[cfg(all(not(target_arch = "wasm32"), feature = "desktop"))]
     pending_file_path: Option<std::path::PathBuf>,
@@ -110,6 +117,8 @@ impl Default for PcapViewerApp {
             url_input: String::new(),
             show_settings: false,
             show_about: false,
+            messages_scrubber: TimeScrubber::new(),
+            fragments_scrubber: TimeScrubber::new(),
             #[cfg(all(not(target_arch = "wasm32"), feature = "desktop"))]
             pending_file_path: None,
         }
@@ -158,6 +167,17 @@ impl PcapViewerApp {
                 } else {
                     Some(0)
                 };
+
+                // Update time scrubbers
+                // Messages scrubber uses message timestamps
+                let message_timestamps: Vec<f64> =
+                    self.messages.iter().map(|m| m.timestamp).collect();
+                self.messages_scrubber.update_density(&message_timestamps);
+
+                // Fragments scrubber uses packet timestamps
+                let packet_timestamps: Vec<f64> =
+                    self.packets.iter().map(|p| p.timestamp).collect();
+                self.fragments_scrubber.update_density(&packet_timestamps);
             }
             Err(e) => {
                 self.status_message = format!("Error parsing PCAP: {}", e);
@@ -738,6 +758,37 @@ impl eframe::App for PcapViewerApp {
             });
         });
 
+        // Time scrubber panel (only show if we have data)
+        // Show appropriate scrubber based on current tab
+        let mut clicked_time: Option<f64> = None;
+        if has_data {
+            // Check which scrubber has data
+            let scrubber_has_data = match self.current_tab {
+                Tab::Messages => self.messages_scrubber.has_data(),
+                Tab::Fragments => self.fragments_scrubber.has_data(),
+            };
+
+            if scrubber_has_data {
+                egui::TopBottomPanel::top("time_scrubber_panel")
+                    .resizable(false)
+                    .show(ctx, |ui| {
+                        // Show appropriate scrubber
+                        let result = match self.current_tab {
+                            Tab::Messages => self.messages_scrubber.show(ui),
+                            Tab::Fragments => self.fragments_scrubber.show(ui),
+                        };
+
+                        // Check if user clicked
+                        if result.is_some() {
+                            clicked_time = match self.current_tab {
+                                Tab::Messages => self.messages_scrubber.get_hover_time(),
+                                Tab::Fragments => self.fragments_scrubber.get_hover_time(),
+                            };
+                        }
+                    });
+            }
+        }
+
         // Detail panel - responsive layout:
         // Mobile: Bottom panel (stacked vertically below list)
         // Desktop/Tablet: Right side panel (side by side)
@@ -802,6 +853,49 @@ impl eframe::App for PcapViewerApp {
                                 self.show_detail_content(ui);
                             });
                     });
+            }
+        }
+
+        // Handle click-to-scroll from time scrubber
+        if let Some(time) = clicked_time {
+            // Find the closest packet/message to the clicked time
+            match self.current_tab {
+                Tab::Messages => {
+                    let closest_idx = self
+                        .messages
+                        .iter()
+                        .enumerate()
+                        .min_by(|(_, a), (_, b)| {
+                            let dist_a = (a.timestamp - time).abs();
+                            let dist_b = (b.timestamp - time).abs();
+                            dist_a
+                                .partial_cmp(&dist_b)
+                                .unwrap_or(std::cmp::Ordering::Equal)
+                        })
+                        .map(|(idx, _)| idx);
+
+                    if let Some(idx) = closest_idx {
+                        self.selected_message = Some(idx);
+                    }
+                }
+                Tab::Fragments => {
+                    let closest_idx = self
+                        .packets
+                        .iter()
+                        .enumerate()
+                        .min_by(|(_, a), (_, b)| {
+                            let dist_a = (a.timestamp - time).abs();
+                            let dist_b = (b.timestamp - time).abs();
+                            dist_a
+                                .partial_cmp(&dist_b)
+                                .unwrap_or(std::cmp::Ordering::Equal)
+                        })
+                        .map(|(idx, _)| idx);
+
+                    if let Some(idx) = closest_idx {
+                        self.selected_packet = Some(idx);
+                    }
+                }
             }
         }
 
@@ -1444,12 +1538,26 @@ impl PcapViewerApp {
         let sort_field = self.sort_field;
         let sort_ascending = self.sort_ascending;
         let total = self.messages.len();
+        let time_filter = self.messages_scrubber.get_selected_range().cloned();
 
         let mut filtered: Vec<(usize, usize, String, String, String)> = self
             .messages
             .iter()
             .enumerate()
-            .filter(|(_, m)| search.is_empty() || m.message_type.to_lowercase().contains(&search))
+            .filter(|(_, m)| {
+                // Apply search filter
+                let matches_search =
+                    search.is_empty() || m.message_type.to_lowercase().contains(&search);
+
+                // Apply time filter
+                let matches_time = if let Some(ref range) = time_filter {
+                    range.contains(m.timestamp)
+                } else {
+                    true
+                };
+
+                matches_search && matches_time
+            })
             .map(|(idx, m)| {
                 (
                     idx,
@@ -1608,11 +1716,20 @@ impl PcapViewerApp {
         let sort_field = self.sort_field;
         let sort_ascending = self.sort_ascending;
         let total = self.packets.len();
+        let time_filter = self.fragments_scrubber.get_selected_range().cloned();
 
         let mut filtered: Vec<(usize, usize, u32, String, u32, u16)> = self
             .packets
             .iter()
             .enumerate()
+            .filter(|(_, p)| {
+                // Apply time filter
+                if let Some(ref range) = time_filter {
+                    range.contains(p.timestamp)
+                } else {
+                    true
+                }
+            })
             .map(|(idx, p)| {
                 (
                     idx,
