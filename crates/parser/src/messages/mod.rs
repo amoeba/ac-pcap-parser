@@ -19,6 +19,8 @@ pub struct ParsedMessage {
     pub direction: String,
     #[serde(rename = "OpCode")]
     pub opcode: String,
+    #[serde(skip)]
+    pub raw_bytes: Vec<u8>,
 }
 
 /// Parse a message from raw bytes
@@ -32,13 +34,13 @@ pub fn parse_message(data: &[u8], id: usize) -> Result<ParsedMessage> {
     let s2c_type = S2CMessageType::from_u32(opcode);
     let c2s_type = C2SMessageType::from_u32(opcode);
 
-    if s2c_type != S2CMessageType::Unknown {
-        parse_s2c_message(&mut reader, opcode, s2c_type, id)
+    let mut parsed = if s2c_type != S2CMessageType::Unknown {
+        parse_s2c_message(&mut reader, opcode, s2c_type, id)?
     } else if c2s_type != C2SMessageType::Unknown {
-        parse_c2s_message(&mut reader, opcode, c2s_type, id)
+        parse_c2s_message(&mut reader, opcode, c2s_type, id)?
     } else {
         // Unknown message type
-        Ok(ParsedMessage {
+        ParsedMessage {
             id,
             message_type: "Unknown".to_string(),
             data: serde_json::json!({
@@ -47,8 +49,13 @@ pub fn parse_message(data: &[u8], id: usize) -> Result<ParsedMessage> {
             }),
             direction: "Unknown".to_string(),
             opcode: format!("{:04X}", opcode),
-        })
-    }
+            raw_bytes: Vec::new(),
+        }
+    };
+
+    // Store raw bytes
+    parsed.raw_bytes = data.to_vec();
+    Ok(parsed)
 }
 
 fn parse_s2c_message(
@@ -160,6 +167,7 @@ fn parse_s2c_message(
         data,
         direction: "Recv".to_string(),
         opcode: format!("{:04X}", opcode),
+        raw_bytes: Vec::new(),
     })
 }
 
@@ -204,5 +212,6 @@ fn parse_c2s_message(
         data,
         direction: "Send".to_string(),
         opcode: format!("{:04X}", opcode),
+        raw_bytes: Vec::new(),
     })
 }

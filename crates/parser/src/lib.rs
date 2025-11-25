@@ -71,6 +71,8 @@ pub struct ParsedPacket {
     pub fragment: Option<FragmentInfo>,
     #[serde(rename = "Id")]
     pub id: usize,
+    #[serde(skip)]
+    pub raw_payload: Vec<u8>,
 }
 
 /// Main parser for PCAP files
@@ -181,16 +183,26 @@ impl PacketParser {
 
             let header = PacketHeader::parse(&mut reader)?;
 
+            let packet_end = start_pos + PacketHeader::BASE_SIZE + header.size as usize;
+            let payload_start = reader.position() as usize;
+            let payload_size = packet_end.saturating_sub(payload_start);
+
+            // Capture raw payload bytes
+            let raw_payload = if payload_size > 0 && payload_size <= data.len() - payload_start {
+                data[payload_start..payload_start + payload_size].to_vec()
+            } else {
+                Vec::new()
+            };
+
             let mut parsed_packet = ParsedPacket {
                 header: header.clone(),
                 direction,
                 messages: Vec::new(),
                 fragment: None,
                 id: *packet_id,
+                raw_payload,
             };
             *packet_id += 1;
-
-            let packet_end = start_pos + PacketHeader::BASE_SIZE + header.size as usize;
 
             if header.flags.contains(PacketHeaderFlags::BLOB_FRAGMENTS) {
                 while (reader.position() as usize) < packet_end && reader.remaining() > 0 {
