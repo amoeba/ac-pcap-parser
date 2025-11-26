@@ -183,7 +183,7 @@ impl TimeScrubber {
                     egui::Color32::from_rgba_unmultiplied(50, 100, 200, 200)
                 };
 
-                for (i, (time, density)) in self.density_data.iter().enumerate() {
+                for (time, density) in &self.density_data {
                     let x = rect.min.x + ((*time - data_range.min) / time_range) as f32 * rect.width();
                     let normalized_density = density / max_density;
                     let bar_height = normalized_density * height;
