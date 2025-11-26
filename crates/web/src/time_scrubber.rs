@@ -333,4 +333,119 @@ impl TimeScrubber {
     pub fn get_hover_time(&self) -> Option<f64> {
         self.hover_time
     }
+
+    /// Get the current highlighted timestamps (for testing)
+    #[cfg(test)]
+    pub fn get_highlighted_timestamps(&self) -> &[f64] {
+        &self.highlighted_timestamps
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_scrubber_has_no_highlights() {
+        let scrubber = TimeScrubber::new();
+        assert!(scrubber.highlighted_timestamps.is_empty());
+    }
+
+    #[test]
+    fn test_set_highlighted_timestamps() {
+        let mut scrubber = TimeScrubber::new();
+        let timestamps = vec![1.0, 2.0, 3.0, 4.0];
+
+        scrubber.set_highlighted_timestamps(timestamps.clone());
+
+        assert_eq!(scrubber.get_highlighted_timestamps(), &timestamps);
+    }
+
+    #[test]
+    fn test_clear_highlighted_timestamps() {
+        let mut scrubber = TimeScrubber::new();
+
+        // Set some timestamps
+        scrubber.set_highlighted_timestamps(vec![1.0, 2.0, 3.0]);
+        assert_eq!(scrubber.get_highlighted_timestamps().len(), 3);
+
+        // Clear by setting empty vector
+        scrubber.set_highlighted_timestamps(Vec::new());
+        assert!(scrubber.get_highlighted_timestamps().is_empty());
+    }
+
+    #[test]
+    fn test_update_highlighted_timestamps() {
+        let mut scrubber = TimeScrubber::new();
+
+        // Set initial timestamps
+        scrubber.set_highlighted_timestamps(vec![1.0, 2.0]);
+        assert_eq!(scrubber.get_highlighted_timestamps().len(), 2);
+
+        // Update with different timestamps
+        scrubber.set_highlighted_timestamps(vec![5.0, 6.0, 7.0, 8.0]);
+        assert_eq!(scrubber.get_highlighted_timestamps().len(), 4);
+        assert_eq!(scrubber.get_highlighted_timestamps(), &[5.0, 6.0, 7.0, 8.0]);
+    }
+
+    #[test]
+    fn test_update_density_preserves_highlights() {
+        let mut scrubber = TimeScrubber::new();
+
+        // Set highlights before updating density
+        let highlights = vec![1.5, 2.5, 3.5];
+        scrubber.set_highlighted_timestamps(highlights.clone());
+
+        // Update density data
+        let timestamps = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+        scrubber.update_density(&timestamps);
+
+        // Highlights should still be present
+        assert_eq!(scrubber.get_highlighted_timestamps(), &highlights);
+    }
+
+    #[test]
+    fn test_reset_selection_preserves_highlights() {
+        let mut scrubber = TimeScrubber::new();
+
+        // Initialize with density data
+        let timestamps = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+        scrubber.update_density(&timestamps);
+
+        // Set highlights
+        let highlights = vec![1.5, 2.5];
+        scrubber.set_highlighted_timestamps(highlights.clone());
+
+        // Reset selection
+        scrubber.reset_selection();
+
+        // Highlights should still be present
+        assert_eq!(scrubber.get_highlighted_timestamps(), &highlights);
+    }
+
+    #[test]
+    fn test_time_range_contains() {
+        let range = TimeRange::new(10.0, 20.0);
+
+        assert!(!range.contains(5.0)); // Before range
+        assert!(range.contains(10.0)); // Start of range
+        assert!(range.contains(15.0)); // Middle of range
+        assert!(range.contains(20.0)); // End of range
+        assert!(!range.contains(25.0)); // After range
+    }
+
+    #[test]
+    fn test_time_range_is_full_range() {
+        let range = TimeRange::new(10.0, 20.0);
+
+        // Exact match
+        assert!(range.is_full_range(10.0, 20.0));
+
+        // Within tolerance (0.001)
+        assert!(range.is_full_range(10.0005, 20.0005));
+
+        // Outside tolerance
+        assert!(!range.is_full_range(10.1, 20.0));
+        assert!(!range.is_full_range(10.0, 19.9));
+    }
 }
