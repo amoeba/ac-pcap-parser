@@ -1037,12 +1037,13 @@ impl eframe::App for PcapViewerApp {
                         #[cfg(not(target_arch = "wasm32"))]
                         let example_url = "./example.pcap".to_string();
 
-                        let link_text = format!("or try this example: {}", example_url);
+                        let prefix_text = "Example: ";
+                        let full_text = format!("{}{}", prefix_text, example_url);
 
-                        // Calculate width for centering
-                        let text_width = ui.fonts(|f| {
+                        // Calculate width for centering the entire line
+                        let total_width = ui.fonts(|f| {
                             f.layout_no_wrap(
-                                link_text.clone(),
+                                full_text.clone(),
                                 egui::FontId::default(),
                                 egui::Color32::PLACEHOLDER,
                             )
@@ -1052,12 +1053,16 @@ impl eframe::App for PcapViewerApp {
                         let available_width = ui.available_width();
 
                         // Add left padding to center
-                        if text_width < available_width {
-                            let left_padding = (available_width - text_width) / 2.0;
+                        if total_width < available_width {
+                            let left_padding = (available_width - total_width) / 2.0;
                             ui.add_space(left_padding);
                         }
 
-                        if ui.link(link_text).clicked() {
+                        // Show "Example: " as plain text
+                        ui.label(prefix_text);
+
+                        // Show the URL as a clickable link
+                        if ui.link(&example_url).clicked() {
                             self.url_input = example_url.clone();
                             self.load_from_url(example_url, ctx);
                         }
