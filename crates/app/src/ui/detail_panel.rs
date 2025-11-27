@@ -325,9 +325,10 @@ fn show_pretty_json(ui: &mut egui::Ui, value: &serde_json::Value) {
                 egui::Color32::from_rgb(163, 21, 21) // Dark red
             }
         } else if trimmed.starts_with(|c: char| c.is_ascii_digit())
-               || trimmed.starts_with("true")
-               || trimmed.starts_with("false")
-               || trimmed.starts_with("null") {
+            || trimmed.starts_with("true")
+            || trimmed.starts_with("false")
+            || trimmed.starts_with("null")
+        {
             // Numbers and literals
             if ui.visuals().dark_mode {
                 egui::Color32::from_rgb(181, 206, 168) // Light green

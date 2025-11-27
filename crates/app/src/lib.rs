@@ -470,7 +470,11 @@ impl eframe::App for PcapViewerApp {
 
                         // Mark button (enabled when filter is active)
                         ui.add_enabled_ui(!self.search_query.is_empty(), |ui| {
-                            if ui.button("◉").on_hover_text("Mark filtered items").clicked() {
+                            if ui
+                                .button("◉")
+                                .on_hover_text("Mark filtered items")
+                                .clicked()
+                            {
                                 self.mark_filtered_items();
                             }
                         });
@@ -560,7 +564,11 @@ impl eframe::App for PcapViewerApp {
 
                     // Mark button (enabled when filter is active)
                     ui.add_enabled_ui(!self.search_query.is_empty(), |ui| {
-                        if ui.button("Mark").on_hover_text("Mark filtered items").clicked() {
+                        if ui
+                            .button("Mark")
+                            .on_hover_text("Mark filtered items")
+                            .clicked()
+                        {
                             self.mark_filtered_items();
                         }
                     });
