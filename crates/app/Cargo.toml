@@ -9,7 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 # Desktop binary (requires --features desktop)
 [[bin]]
-name = "ac-pcap-viewer"
+name = "app"
 path = "src/bin/desktop.rs"
 required-features = ["desktop"]
 

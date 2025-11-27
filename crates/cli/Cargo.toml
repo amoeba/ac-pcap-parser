@@ -5,7 +5,7 @@ edition.workspace = true
 description = "CLI for Asheron's Call PCAP parser"
 
 [[bin]]
-name = "ac-pcap-parser"
+name = "cli"
 path = "src/main.rs"
 
 [dependencies]
