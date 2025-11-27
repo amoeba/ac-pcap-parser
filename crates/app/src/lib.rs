@@ -64,6 +64,11 @@ pub struct PcapViewerApp {
     pub show_settings: bool,
     pub show_about: bool,
 
+    // Discord loading state
+    pub discord_channel_id: String,
+    pub discord_message_id: String,
+    pub discord_load_error: Option<String>,
+
     // Time scrubbers (separate for messages and fragments)
     pub messages_scrubber: TimeScrubber,
     pub fragments_scrubber: TimeScrubber,
@@ -103,6 +108,9 @@ impl Default for PcapViewerApp {
             url_load_error: None,
             show_settings: false,
             show_about: false,
+            discord_channel_id: String::new(),
+            discord_message_id: String::new(),
+            discord_load_error: None,
             messages_scrubber: TimeScrubber::new(),
             fragments_scrubber: TimeScrubber::new(),
             marked_messages: std::collections::HashSet::new(),
@@ -294,7 +302,8 @@ impl eframe::App for PcapViewerApp {
             None
         };
         if let Some(error) = fetched_error {
-            self.url_load_error = Some(error);
+            self.url_load_error = Some(error.clone());
+            self.discord_load_error = Some(error);
             self.is_loading = false;
         }
 
@@ -943,6 +952,52 @@ impl eframe::App for PcapViewerApp {
 
                     // Display error if URL load failed
                     if let Some(ref error) = self.url_load_error {
+                        ui.add_space(5.0);
+                        ui.colored_label(egui::Color32::RED, error);
+                    }
+
+                    // Add Discord loading option
+                    ui.add_space(10.0);
+                    ui.label("or");
+                    ui.add_space(10.0);
+
+                    ui.label("Load from Discord");
+                    ui.add_space(5.0);
+
+                    ui.horizontal(|ui| {
+                        let input_width = if is_mobile { 150.0 } else { 180.0 };
+                        let button_width = 50.0;
+                        let spacing = ui.spacing().item_spacing.x;
+                        let total_content_width = (input_width * 2.0) + spacing + button_width + spacing;
+                        let available_width = ui.available_width();
+
+                        // Add left padding to center the content
+                        if total_content_width < available_width {
+                            let left_padding = (available_width - total_content_width) / 2.0;
+                            ui.add_space(left_padding);
+                        }
+
+                        ui.label("Channel:");
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.discord_channel_id)
+                                .hint_text("1234567890")
+                                .desired_width(input_width),
+                        );
+                        ui.label("Message:");
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.discord_message_id)
+                                .hint_text("0987654321")
+                                .desired_width(input_width),
+                        );
+                        if ui.button("Load").clicked() && !self.discord_channel_id.is_empty() && !self.discord_message_id.is_empty() {
+                            let channel = self.discord_channel_id.clone();
+                            let message = self.discord_message_id.clone();
+                            ui::file_panel::load_from_discord(self, channel, message, ctx);
+                        }
+                    });
+
+                    // Display error if Discord load failed
+                    if let Some(ref error) = self.discord_load_error {
                         ui.add_space(5.0);
                         ui.colored_label(egui::Color32::RED, error);
                     }
