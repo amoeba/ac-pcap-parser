@@ -7,13 +7,13 @@ mod state;
 mod time_scrubber;
 mod ui;
 
-use ac_parser::{messages::ParsedMessage, ParsedPacket};
+use lib::{messages::ParsedMessage, ParsedPacket};
 use eframe::egui;
 use std::sync::{Arc, Mutex};
 use time_scrubber::TimeScrubber;
 
 // Re-export state types for convenience
-pub use ac_pcap_lib::{SortField, Tab, ViewMode};
+pub use lib::{SortField, Tab, ViewMode};
 use state::{MOBILE_BREAKPOINT, MOBILE_SCALE, TABLET_BREAKPOINT};
 
 // Shared state for async loading

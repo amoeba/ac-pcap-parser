@@ -13,8 +13,7 @@ use ratatui::{
 };
 use std::io::{self, Stdout};
 
-use ac_parser::{messages::ParsedMessage, ParsedPacket};
-use ac_pcap_lib::{Direction as PktDirection, Tab};
+use lib::{messages::ParsedMessage, ParsedPacket, Direction as PktDirection, Tab};
 
 use crate::filter;
 

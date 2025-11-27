@@ -1,7 +1,7 @@
 //! Detail panel UI components for displaying message/packet details
 
 use crate::{PcapViewerApp, Tab, ViewMode};
-use ac_parser::{messages::ParsedMessage, ParsedPacket};
+use lib::{messages::ParsedMessage, ParsedPacket};
 use eframe::egui;
 use egui_json_tree::JsonTree;
 

@@ -9,8 +9,7 @@ name = "ac-pcap-parser"
 path = "src/main.rs"
 
 [dependencies]
-ac-pcap-lib = { path = "../lib" }
-ac-parser = { path = "../parser" }
+lib = { path = "../lib" }
 anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true

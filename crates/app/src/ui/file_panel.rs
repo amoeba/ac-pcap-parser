@@ -1,7 +1,7 @@
 //! File loading and management UI components
 
 use crate::{PcapViewerApp, Tab};
-use ac_parser::PacketParser;
+use lib::PacketParser;
 use eframe::egui;
 
 /// Parse PCAP data and update the app state
