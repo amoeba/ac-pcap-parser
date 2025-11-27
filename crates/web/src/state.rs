@@ -2,7 +2,6 @@ use std::sync::{Arc, Mutex};
 
 // Re-export shared enums from lib crate
 // TODO: Re-enable these imports when needed for web UI
-#[allow(unused_imports)]
 // pub use ac_pcap_lib::{Tab, ViewMode, SortField};
 
 // Responsive breakpoints
