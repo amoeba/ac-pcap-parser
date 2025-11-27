@@ -2,6 +2,7 @@
 //!
 //! A drag-and-drop web interface built with egui for parsing AC PCAP files.
 
+mod filter;
 mod state;
 mod time_scrubber;
 mod ui;

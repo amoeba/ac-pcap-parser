@@ -6,6 +6,7 @@ use std::fs::File;
 use ac_parser::{messages::ParsedMessage, PacketParser, ParsedPacket};
 use ac_pcap_lib::Direction;
 
+mod filter;
 mod tui;
 
 #[derive(Parser)]
@@ -27,6 +28,10 @@ pub enum Commands {
         /// Filter by message type (substring match)
         #[arg(short = 't', long)]
         filter_type: Option<String>,
+
+        /// Filter by opcode (hex like 0xF7B1 or decimal like 63409)
+        #[arg(short = 'o', long)]
+        filter_opcode: Option<String>,
 
         /// Filter by direction (Send/Recv)
         #[arg(short = 'd', long)]
@@ -151,17 +156,30 @@ fn print_summary(packets: &[ParsedPacket], messages: &[ParsedMessage]) {
 fn output_messages(
     messages: &[ParsedMessage],
     filter_type: Option<&str>,
+    filter_opcode: Option<&str>,
     direction: Option<DirectionFilter>,
     sort: SortField,
     reverse: bool,
     limit: Option<usize>,
     output: OutputFormat,
 ) {
+    // Parse opcode filter if provided
+    let opcode_filter: Option<u32> = filter_opcode.and_then(|s| filter::parse_opcode_filter(s).ok());
+    
     let mut filtered: Vec<&ParsedMessage> = messages
         .iter()
         .filter(|m| {
             if let Some(ft) = filter_type {
                 if !m.message_type.to_lowercase().contains(&ft.to_lowercase()) {
+                    return false;
+                }
+            }
+            if let Some(oc) = opcode_filter {
+                if let Some(msg_opcode) = filter::opcode_str_to_u32(&m.opcode) {
+                    if msg_opcode != oc {
+                        return false;
+                    }
+                } else {
                     return false;
                 }
             }
@@ -331,6 +349,7 @@ fn main() -> Result<()> {
     match cli.command {
         Some(Commands::Messages {
             filter_type,
+            filter_opcode,
             direction,
             sort,
             reverse,
@@ -340,6 +359,7 @@ fn main() -> Result<()> {
             output_messages(
                 &messages,
                 filter_type.as_deref(),
+                filter_opcode.as_deref(),
                 direction,
                 sort,
                 reverse,

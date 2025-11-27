@@ -1,5 +1,6 @@
 //! Packet and message list UI components
 
+use crate::filter::{parse_filter_string, matches_any_filter};
 use crate::state::json_contains_string;
 use crate::{PcapViewerApp, SortField};
 // TODO: Re-enable this import when needed
@@ -173,16 +174,37 @@ pub fn show_messages_list(app: &mut PcapViewerApp, ui: &mut egui::Ui, is_mobile:
         .iter()
         .enumerate()
         .filter(|(_, m)| {
-            // Apply search filter (search both message type and data)
+            // Apply search filter (search message type, data, and opcode)
             let matches_search = if search.is_empty() {
                 true
             } else {
-                // Search in message type
-                let type_matches = m.message_type.to_lowercase().contains(&search);
-                // Search in message data (deep search)
-                let data_matches = json_contains_string(&m.data, &search);
-                // Match if either type or data contains the search string
-                type_matches || data_matches
+                // Parse search string into rich filters
+                let filters = parse_filter_string(&search);
+                
+                // Check if any filter matches
+                let mut matches = false;
+                
+                // Check opcode match
+                if matches_any_filter(&filters, &m.opcode) {
+                    matches = true;
+                }
+                
+                // Check if filter matches in data fields
+                if !matches {
+                    let data_str = serde_json::to_string(&m.data).unwrap_or_default();
+                    if matches_any_filter(&filters, &data_str) {
+                        matches = true;
+                    }
+                }
+                
+                // Always also do text search (type and data)
+                if !matches {
+                    let type_matches = m.message_type.to_lowercase().contains(&search);
+                    let data_matches = json_contains_string(&m.data, &search);
+                    matches = type_matches || data_matches;
+                }
+                
+                matches
             };
 
             // Apply time filter

@@ -16,6 +16,8 @@ use std::io::{self, Stdout};
 use ac_parser::{messages::ParsedMessage, ParsedPacket};
 use ac_pcap_lib::{Direction as PktDirection, Tab};
 
+use crate::filter;
+
 pub struct App {
     pub messages: Vec<ParsedMessage>,
     pub packets: Vec<ParsedPacket>,
@@ -28,6 +30,15 @@ pub struct App {
     pub show_detail: bool,
     pub search_query: String,
     pub searching: bool,
+    pub search_mode: SearchMode,
+    pub filter_opcode: Option<u32>,
+    pub filter_direction: Option<String>,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum SearchMode {
+    Type,
+    Opcode,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -68,19 +79,46 @@ impl App {
             show_detail: false,
             search_query: String::new(),
             searching: false,
+            search_mode: SearchMode::Type,
+            filter_opcode: None,
+            filter_direction: None,
         }
     }
 
     pub fn filtered_messages(&self) -> Vec<&ParsedMessage> {
-        let mut msgs: Vec<&ParsedMessage> = if self.search_query.is_empty() {
-            self.messages.iter().collect()
-        } else {
-            let query = self.search_query.to_lowercase();
-            self.messages
-                .iter()
-                .filter(|m| m.message_type.to_lowercase().contains(&query))
-                .collect()
-        };
+        let mut msgs: Vec<&ParsedMessage> = self
+            .messages
+            .iter()
+            .filter(|m| {
+                // Type filter
+                if !self.search_query.is_empty() {
+                    let query = self.search_query.to_lowercase();
+                    if !m.message_type.to_lowercase().contains(&query) {
+                        return false;
+                    }
+                }
+
+                // Opcode filter
+                if let Some(oc) = self.filter_opcode {
+                    if let Some(msg_opcode) = filter::opcode_str_to_u32(&m.opcode) {
+                        if msg_opcode != oc {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                }
+
+                // Direction filter
+                if let Some(ref dir) = self.filter_direction {
+                    if m.direction != *dir {
+                        return false;
+                    }
+                }
+
+                true
+            })
+            .collect();
 
         msgs.sort_by(|a, b| {
             let cmp = match self.message_sort {
@@ -267,8 +305,26 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> 
 
             if app.searching {
                 match key.code {
-                    KeyCode::Enter | KeyCode::Esc => {
+                    KeyCode::Enter => {
                         app.searching = false;
+                        match app.search_mode {
+                            SearchMode::Type => {
+                                // Type search stays in search_query
+                            }
+                            SearchMode::Opcode => {
+                                // Parse opcode and apply filter
+                                if let Ok(oc) = filter::parse_opcode_filter(&app.search_query) {
+                                    app.filter_opcode = Some(oc);
+                                }
+                                app.search_query.clear();
+                            }
+                        }
+                        // Reset to first row when filter changes
+                        app.message_state.select(Some(0));
+                    }
+                    KeyCode::Esc => {
+                        app.searching = false;
+                        app.search_query.clear();
                     }
                     KeyCode::Backspace => {
                         app.search_query.pop();
@@ -295,9 +351,42 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> 
                 KeyCode::PageUp | KeyCode::Char('u') => app.page_up(),
                 KeyCode::Char('s') => app.cycle_sort(),
                 KeyCode::Char('r') => app.toggle_sort_order(),
-                KeyCode::Enter => app.show_detail = !app.show_detail,
+                KeyCode::Enter => {
+                    // Ensure something is selected before showing detail
+                    match app.current_tab {
+                        Tab::Messages => {
+                            if app.message_state.selected().is_none() && !app.filtered_messages().is_empty() {
+                                app.message_state.select(Some(0));
+                            }
+                        }
+                        Tab::Fragments => {
+                            if app.packet_state.selected().is_none() && !app.filtered_packets().is_empty() {
+                                app.packet_state.select(Some(0));
+                            }
+                        }
+                    }
+                    app.show_detail = !app.show_detail;
+                }
                 KeyCode::Char('/') => {
                     app.searching = true;
+                    app.search_mode = SearchMode::Type;
+                    app.search_query.clear();
+                }
+                KeyCode::Char('f') => {
+                    // Toggle direction filter (cycle through Send, Recv, None)
+                    app.filter_direction = match app.filter_direction.as_deref() {
+                        None => Some("Send".to_string()),
+                        Some("Send") => Some("Recv".to_string()),
+                        Some("Recv") => None,
+                        _ => None,
+                    };
+                    // Reset to first row when filter changes
+                    app.message_state.select(Some(0));
+                }
+                KeyCode::Char('o') => {
+                    // Enter opcode search mode
+                    app.searching = true;
+                    app.search_mode = SearchMode::Opcode;
                     app.search_query.clear();
                 }
                 KeyCode::Esc => {
@@ -367,7 +456,11 @@ fn ui(f: &mut Frame, app: &mut App) {
     }
 
     let help = if app.searching {
-        format!("Search: {}█  (Enter/Esc to finish)", app.search_query)
+        let mode_label = match app.search_mode {
+            SearchMode::Type => "Type Search",
+            SearchMode::Opcode => "OpCode Filter (0xF7B1 or 63409)",
+        };
+        format!("{}: {}█  (Enter/Esc to finish)", mode_label, app.search_query)
     } else {
         let sort_indicator = if app.sort_ascending { "↑" } else { "↓" };
         let sort_field = match app.current_tab {
@@ -382,8 +475,21 @@ fn ui(f: &mut Frame, app: &mut App) {
                 PacketSort::Direction => "Dir",
             },
         };
+        
+        let dir_filter = match app.filter_direction.as_deref() {
+            None => "All".to_string(),
+            Some("Send") => "Send".to_string(),
+            Some("Recv") => "Recv".to_string(),
+            _ => "All".to_string(),
+        };
+        
+        let opcode_filter = match app.filter_opcode {
+            None => "None".to_string(),
+            Some(oc) => format!("{:04X}", oc),
+        };
+        
         format!(
-            "q:Quit Tab:Switch ↑↓/jk:Nav PgUp/PgDn:Page s:Sort({sort_field}{sort_indicator}) r:Reverse Enter:Detail /:Search"
+            "q:Quit Tab:Switch ↑↓/jk:Nav PgUp/PgDn:Page s:Sort({sort_field}{sort_indicator}) r:Reverse Enter:Detail /:Search f:Dir({dir_filter}) o:OpCode({opcode_filter})"
         )
     };
 
@@ -533,7 +639,7 @@ fn render_detail(f: &mut Frame, app: &App, area: Rect) {
                 .borders(Borders::ALL)
                 .title("Detail (Press Enter or Esc to close)"),
         )
-        .style(Style::default().fg(Color::White));
+        .style(Style::default().fg(Color::Cyan));
 
     f.render_widget(paragraph, area);
 }
