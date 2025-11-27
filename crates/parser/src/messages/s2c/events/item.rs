@@ -1,5 +1,5 @@
 use crate::properties::{
-    self, appraisal_flags, ArmorProfile, CreatureProfile, HookProfile, LayeredSpellId,
+    self, appraisal_flags, ArmorProfile, CreatureProfile, HookProfile,
     WeaponProfile,
 };
 use crate::reader::BinaryReader;
