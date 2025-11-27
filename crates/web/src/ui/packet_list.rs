@@ -156,9 +156,12 @@ pub fn show_messages_list(app: &mut PcapViewerApp, ui: &mut egui::Ui, is_mobile:
             .messages
             .iter()
             .filter(|m| {
+                let id_matches = m.id.to_string().contains(&search);
                 let type_matches = m.message_type.to_lowercase().contains(&search);
+                let direction_matches = m.direction.to_lowercase().contains(&search);
+                let opcode_matches = m.opcode.to_lowercase().contains(&search);
                 let data_matches = json_contains_string(&m.data, &search);
-                type_matches || data_matches
+                id_matches || type_matches || direction_matches || opcode_matches || data_matches
             })
             .map(|m| m.timestamp)
             .collect();
@@ -173,16 +176,23 @@ pub fn show_messages_list(app: &mut PcapViewerApp, ui: &mut egui::Ui, is_mobile:
         .iter()
         .enumerate()
         .filter(|(_, m)| {
-            // Apply search filter (search both message type and data)
+            // Apply search filter (search in all message fields and data)
             let matches_search = if search.is_empty() {
                 true
             } else {
+                // Search in message ID
+                let id_matches = m.id.to_string().contains(&search);
                 // Search in message type
                 let type_matches = m.message_type.to_lowercase().contains(&search);
-                // Search in message data (deep search)
+                // Search in direction
+                let direction_matches = m.direction.to_lowercase().contains(&search);
+                // Search in opcode
+                let opcode_matches = m.opcode.to_lowercase().contains(&search);
+                // Search in message data (deep search including field names and numeric values)
                 let data_matches = json_contains_string(&m.data, &search);
-                // Match if either type or data contains the search string
-                type_matches || data_matches
+
+                // Match if any field contains the search string
+                id_matches || type_matches || direction_matches || opcode_matches || data_matches
             };
 
             // Apply time filter
