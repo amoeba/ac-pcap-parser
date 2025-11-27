@@ -145,27 +145,49 @@ impl PcapViewerApp {
                     .iter()
                     .enumerate()
                     .filter(|(_, m)| {
-                        // Apply search filter (search both message type and data)
+                        // Apply search filter with rich filter support
                         let matches_search = if search.is_empty() {
                             true
                         } else {
-                            // Search in message ID
-                            let id_matches = m.id.to_string().contains(&search);
-                            // Search in message type
-                            let type_matches = m.message_type.to_lowercase().contains(&search);
-                            // Search in direction
-                            let direction_matches = m.direction.to_lowercase().contains(&search);
-                            // Search in opcode
-                            let opcode_matches = m.opcode.to_lowercase().contains(&search);
-                            // Search in message data (deep search including field names and numeric values)
-                            let data_matches = crate::state::json_contains_string(&m.data, &search);
+                            // Parse search string into rich filters (supports hex, decimal, and text)
+                            let filters = crate::filter::parse_filter_string(&search);
 
-                            // Match if any field contains the search string
-                            id_matches
-                                || type_matches
-                                || direction_matches
-                                || opcode_matches
-                                || data_matches
+                            // Check if any filter matches
+                            let mut matches = false;
+
+                            // Search in message ID
+                            if crate::filter::matches_any_filter(&filters, &m.id.to_string()) {
+                                matches = true;
+                            }
+
+                            // Check opcode match
+                            if !matches && crate::filter::matches_any_filter(&filters, &m.opcode) {
+                                matches = true;
+                            }
+
+                            // Check direction match
+                            if !matches && crate::filter::matches_any_filter(&filters, &m.direction)
+                            {
+                                matches = true;
+                            }
+
+                            // Check if filter matches in data fields
+                            if !matches {
+                                let data_str = serde_json::to_string(&m.data).unwrap_or_default();
+                                if crate::filter::matches_any_filter(&filters, &data_str) {
+                                    matches = true;
+                                }
+                            }
+
+                            // Always also do text search (type and data)
+                            if !matches {
+                                let type_matches = m.message_type.to_lowercase().contains(&search);
+                                let data_matches =
+                                    crate::state::json_contains_string(&m.data, &search);
+                                matches = type_matches || data_matches;
+                            }
+
+                            matches
                         };
 
                         // Apply time filter
