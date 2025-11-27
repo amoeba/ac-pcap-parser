@@ -54,16 +54,27 @@ IN PROGRESS
 🔄 Testing Discord API endpoint
   - Web server builds and starts successfully
   - Health check endpoint works (/api/health returns "OK")
-  - Discord endpoint query param parsing needs debugging
-    * Currently rejecting requests due to empty param validation
-    * Need to verify query params are being deserialized correctly
+  - Query parameter parsing FIXED (was user error with URL encoding)
+  - Snowflake ID validation working (18-digit check)
+  - Discord API call attempt successful (getting 401 Unauthorized)
+    * This means the OAuth token provided is invalid/expired
+    * The implementation is correct - proper API call being made
+    * Error handling improved with detailed error messages
 
-DEBUGGING NEEDED
-----------------
-Issue: Query parameters not being parsed correctly for /api/discord
-  - curl http://localhost:3000/api/discord?channel=123&msg=456
-  - Returns: {"error":"Missing channel or msg parameters"}
-  - Added logging to discord_pull() to debug
+FIXED ISSUES
+------------
+✅ Query parameter parsing
+  - Was actually working, just needed proper URL encoding
+  - Test: curl "http://localhost:3000/api/discord?channel=ID&msg=ID"
+  
+✅ Router configuration
+  - Changed from nest_service to fallback_service for root route
+  - Allows proper routing of /api/* endpoints while serving static files
+
+✅ Error logging
+  - Added Discord API response body logging for debugging
+  - Added specific handling for 401 authentication failures
+  - Better error messages to clients
 
 Test Commands:
   1. Build web assets: cargo xtask web
@@ -71,37 +82,46 @@ Test Commands:
   3. Set token: source .envrc.local
   4. Run server: ./target/debug/web-server
   5. Test health: curl http://localhost:3000/api/health
-  6. Test Discord endpoint: curl http://localhost:3000/api/discord?channel=...&msg=...
+  6. Test Discord: curl "http://localhost:3000/api/discord?channel=138001967583592463&msg=144100294560789713"
 
 REMAINING WORK
 --------------
-1. Debug query parameter parsing issue
-   - Verify DiscordQuery struct is receiving parameters
-   - Check if axum Query deserialization is working
+1. ✅ DONE - Query parameter parsing
+   - Fixed with proper URL encoding
+   - Snowflake ID validation working
 
-2. Test Discord API integration
-   - Create test Discord message with PCAP attachment
-   - Verify message fetching works
-   - Verify attachment downloading works
+2. 🔄 IN PROGRESS - Test Discord API integration
+   - Need valid Discord bot token to test
+   - Once token is available:
+     * Test message fetching
+     * Test attachment downloading
+     * Test PCAP validation
+   - Current status: Getting 401 with provided token (invalid/expired)
 
 3. Integrate with web UI
    - Test full flow: UI → server → Discord API → PCAP returned
    - Handle error cases gracefully
    - Show loading spinner during fetch
+   - Test in browser with real Discord message
 
 4. Rate limiting
-   - Add middleware to limit Discord API requests
+   - Add middleware to limit Discord API requests per IP
+   - Implement exponential backoff for Discord API timeouts
    - Prevent DOS attacks on endpoint
 
 5. Production readiness
-   - Proper CORS headers
-   - Request validation and sanitization
-   - Logging and monitoring
+   - Proper CORS headers for web requests
+   - Request validation and input sanitization
+   - Structured logging with request IDs
+   - Health check endpoint monitoring
+   - Graceful shutdown handling
 
 6. Documentation
    - Update README with Discord feature
-   - Document how to get Discord OAuth token
-   - Document deployment with token setup
+   - Document how to create Discord bot token
+   - Document .envrc.local setup
+   - Document deployment with Docker
+   - Add usage examples
 
 ENVIRONMENT SETUP
 -----------------
