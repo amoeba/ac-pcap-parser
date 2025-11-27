@@ -22,8 +22,10 @@ WORKDIR /app
 # Copy the compiled bot binary
 COPY --from=bot-builder /app/target/release/bot /app/bot
 
-# Copy the built WASM assets
-COPY --from=wasm-builder /app/crates/web/pkg /app/dist
+# Copy the built WASM assets (web.js, web_bg.wasm, etc.)
+COPY --from=wasm-builder /app/crates/web/pkg/ /app/dist/
+# Copy the HTML entry point
+COPY --from=wasm-builder /app/crates/web/index.html /app/dist/
 
 EXPOSE 3000
 ENV RUST_LOG=info

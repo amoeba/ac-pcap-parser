@@ -1,9 +1,9 @@
 //! Discord bot handler for event-driven interactions
 
-use serenity::prelude::*;
 use serenity::async_trait;
 use serenity::model::prelude::*;
-use tracing::{info, debug};
+use serenity::prelude::*;
+use tracing::{debug, info};
 
 pub struct Handler;
 
@@ -14,11 +14,8 @@ impl EventHandler for Handler {
     }
 
     async fn message(&self, _ctx: Context, msg: Message) {
-        debug!(
-            "Message received in {}: {}",
-            msg.channel_id, msg.content
-        );
-        
+        debug!("Message received in {}: {}", msg.channel_id, msg.content);
+
         // You can add bot commands/reactions here later
         // For now, just log messages for debugging
     }

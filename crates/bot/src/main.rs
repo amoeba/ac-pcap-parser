@@ -1,15 +1,10 @@
-use axum::{
-    extract::Query,
-    http::StatusCode,
-    routing::get,
-    Json, Router,
-};
+use axum::{extract::Query, http::StatusCode, routing::get, Json, Router};
 use serde::{Deserialize, Serialize};
 use tower_http::services::ServeDir;
 use tracing::info;
 
-mod discord;
 mod bot;
+mod discord;
 
 #[tokio::main]
 async fn main() {
@@ -45,9 +40,7 @@ async fn main() {
 
     info!("Web server running on {}", addr);
 
-    axum::serve(listener, app)
-        .await
-        .expect("Server failed");
+    axum::serve(listener, app).await.expect("Server failed");
 }
 
 fn create_router() -> Router {
@@ -81,8 +74,11 @@ struct DiscordError {
 async fn discord_pull(
     Query(params): Query<DiscordQuery>,
 ) -> Result<Vec<u8>, (StatusCode, Json<DiscordError>)> {
-    info!("Discord pull request: channel={}, msg={}", params.channel, params.msg);
-    
+    info!(
+        "Discord pull request: channel={}, msg={}",
+        params.channel, params.msg
+    );
+
     // Validate channel and message IDs
     if params.channel.is_empty() || params.msg.is_empty() {
         return Err((
@@ -106,12 +102,7 @@ async fn discord_pull(
     // Fetch message from Discord API
     let message = discord::fetch_message(&params.channel, &params.msg, &token)
         .await
-        .map_err(|(status, error)| {
-            (
-                status,
-                Json(DiscordError { error }),
-            )
-        })?;
+        .map_err(|(status, error)| (status, Json(DiscordError { error })))?;
 
     // Find first PCAP attachment
     let pcap_attachment = message
@@ -130,12 +121,7 @@ async fn discord_pull(
     // Download the attachment
     let pcap_data = discord::download_attachment(&pcap_attachment.url)
         .await
-        .map_err(|(status, error)| {
-            (
-                status,
-                Json(DiscordError { error }),
-            )
-        })?;
+        .map_err(|(status, error)| (status, Json(DiscordError { error })))?;
 
     info!(
         "Successfully fetched PCAP from Discord: {} ({} bytes)",

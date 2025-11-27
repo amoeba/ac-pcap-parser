@@ -968,7 +968,8 @@ impl eframe::App for PcapViewerApp {
                         let input_width = if is_mobile { 150.0 } else { 180.0 };
                         let button_width = 50.0;
                         let spacing = ui.spacing().item_spacing.x;
-                        let total_content_width = (input_width * 2.0) + spacing + button_width + spacing;
+                        let total_content_width =
+                            (input_width * 2.0) + spacing + button_width + spacing;
                         let available_width = ui.available_width();
 
                         // Add left padding to center the content
@@ -989,7 +990,10 @@ impl eframe::App for PcapViewerApp {
                                 .hint_text("0987654321")
                                 .desired_width(input_width),
                         );
-                        if ui.button("Load").clicked() && !self.discord_channel_id.is_empty() && !self.discord_message_id.is_empty() {
+                        if ui.button("Load").clicked()
+                            && !self.discord_channel_id.is_empty()
+                            && !self.discord_message_id.is_empty()
+                        {
                             let channel = self.discord_channel_id.clone();
                             let message = self.discord_message_id.clone();
                             ui::file_panel::load_from_discord(self, channel, message, ctx);
