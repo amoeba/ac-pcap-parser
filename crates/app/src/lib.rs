@@ -561,38 +561,6 @@ impl eframe::App for PcapViewerApp {
                         }
                     });
 
-                    ui.separator();
-
-                    // Sort controls
-                    if !is_tablet {
-                        ui.label("Sort:");
-                    }
-                    egui::ComboBox::from_label("")
-                        .selected_text(match self.sort_field {
-                            SortField::Id => "ID",
-                            SortField::Type => {
-                                if is_tablet {
-                                    "Type"
-                                } else {
-                                    "Type/Seq"
-                                }
-                            }
-                            SortField::Direction => "Dir",
-                        })
-                        .show_ui(ui, |ui| {
-                            ui.selectable_value(&mut self.sort_field, SortField::Id, "ID");
-                            ui.selectable_value(&mut self.sort_field, SortField::Type, "Type/Seq");
-                            ui.selectable_value(
-                                &mut self.sort_field,
-                                SortField::Direction,
-                                "Direction",
-                            );
-                        });
-
-                    if ui::packet_list::draw_sort_button(self, ui) {
-                        self.sort_ascending = !self.sort_ascending;
-                    }
-
                     // Theme toggle on far right
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         ui::packet_list::draw_theme_toggle(self, ui);
@@ -684,10 +652,10 @@ impl eframe::App for PcapViewerApp {
 
         if show_detail {
             if is_mobile {
-                // Mobile: Bottom panel (stacked layout)
-                let default_height = (screen_height * 0.45).max(200.0);
-                let min_height = 150.0;
-                let max_height = screen_height * 0.8;
+                // Mobile: Bottom panel (stacked layout) - 25% of screen height
+                let default_height = (screen_height * 0.25).max(150.0);
+                let min_height = 100.0;
+                let max_height = screen_height * 0.75;
 
                 egui::TopBottomPanel::bottom("detail_panel_bottom")
                     .default_height(default_height)
