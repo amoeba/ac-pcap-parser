@@ -141,7 +141,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "base64",
- "console_error_panic_hook",
  "eframe",
  "egui_json_tree",
  "env_logger",
@@ -152,7 +151,6 @@ dependencies = [
  "rfd",
  "serde",
  "serde_json",
- "tracing-wasm",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -3442,6 +3440,28 @@ dependencies = [
  "log",
  "once_cell",
  "pkg-config",
+]
+
+[[package]]
+name = "web"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "app",
+ "base64",
+ "console_error_panic_hook",
+ "eframe",
+ "egui_json_tree",
+ "hex",
+ "js-sys",
+ "lib",
+ "log",
+ "serde",
+ "serde_json",
+ "tracing-wasm",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]

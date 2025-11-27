@@ -4,6 +4,7 @@ members = [
     "crates/lib",
     "crates/cli",
     "crates/app",
+    "crates/web",
     "crates/xtask",
 ]
 

@@ -2,19 +2,18 @@
 name = "app"
 version.workspace = true
 edition.workspace = true
-description = "UI for Asheron's Call PCAP parser (web and desktop)"
+description = "Desktop UI for Asheron's Call PCAP parser"
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["rlib"]
 
-# Desktop binary (requires --features desktop)
+# Desktop binary
 [[bin]]
-name = "app"
+name = "ac-pcap-viewer"
 path = "src/bin/desktop.rs"
-required-features = ["desktop"]
 
 [features]
-default = []
+default = ["desktop"]
 desktop = ["rfd", "env_logger"]
 
 [dependencies]
@@ -31,38 +30,21 @@ log = "0.4"
 hex = "0.4"
 base64 = "0.22"
 
-# Web-specific dependencies
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = "0.2"
-wasm-bindgen-futures = "0.4"
-web-sys = { version = "0.3", features = [
-    "Document",
-    "Window",
-    "Element",
-    "HtmlElement",
-    "HtmlCanvasElement",
-    "HtmlInputElement",
-    "HtmlBodyElement",
-    "DragEvent",
-    "DataTransfer",
-    "FileList",
-    "File",
-    "FileReader",
-    "Blob",
-    "Request",
-    "RequestInit",
-    "Response",
-    "Location",
-    "Url",
-    "UrlSearchParams",
-    "CssStyleDeclaration",
-    "Event",
-] }
-js-sys = "0.3"
-console_error_panic_hook = "0.1"
-tracing-wasm = "0.2"
-
 # Desktop-specific dependencies (optional, enabled by "desktop" feature)
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 rfd = { version = "0.15", optional = true }
 env_logger = { version = "0.11", optional = true }
+
+# Web-specific dependencies (needed for file loading)
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = [
+    "Request",
+    "RequestInit",
+    "Response",
+    "Window",
+    "Location",
+    "UrlSearchParams",
+] }
+js-sys = "0.3"

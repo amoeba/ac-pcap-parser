@@ -1,11 +1,11 @@
-//! Web UI for Asheron's Call PCAP Parser
+//! UI for Asheron's Call PCAP Parser
 //!
-//! A drag-and-drop web interface built with egui for parsing AC PCAP files.
+//! Shared egui-based interface for both web and desktop applications.
 
-mod filter;
-mod state;
-mod time_scrubber;
-mod ui;
+pub mod filter;
+pub mod state;
+pub mod time_scrubber;
+pub mod ui;
 
 use eframe::egui;
 use lib::{messages::ParsedMessage, ParsedPacket};
@@ -17,64 +17,64 @@ pub use lib::{SortField, Tab, ViewMode};
 use state::{MOBILE_BREAKPOINT, MOBILE_SCALE, TABLET_BREAKPOINT};
 
 // Shared state for async loading
-type SharedData = Arc<Mutex<Option<Vec<u8>>>>;
-type SharedError = Arc<Mutex<Option<String>>>;
+pub type SharedData = Arc<Mutex<Option<Vec<u8>>>>;
+pub type SharedError = Arc<Mutex<Option<String>>>;
 
 pub struct PcapViewerApp {
     // Data
-    messages: Vec<ParsedMessage>,
-    packets: Vec<ParsedPacket>,
+    pub messages: Vec<ParsedMessage>,
+    pub packets: Vec<ParsedPacket>,
 
     // UI State
-    current_tab: Tab,
-    selected_message: Option<usize>,
-    selected_packet: Option<usize>,
-    search_query: String,
-    sort_field: SortField,
-    sort_ascending: bool,
-    view_mode: ViewMode,
+    pub current_tab: Tab,
+    pub selected_message: Option<usize>,
+    pub selected_packet: Option<usize>,
+    pub search_query: String,
+    pub sort_field: SortField,
+    pub sort_ascending: bool,
+    pub view_mode: ViewMode,
 
     // Status
-    status_message: String,
-    is_loading: bool,
+    pub status_message: String,
+    pub is_loading: bool,
 
     // Theme
-    dark_mode: bool,
+    pub dark_mode: bool,
 
     // Responsive layout state
-    show_detail_panel: bool,
+    pub show_detail_panel: bool,
 
     // Dropped file data
-    dropped_file_data: Option<Vec<u8>>,
+    pub dropped_file_data: Option<Vec<u8>>,
 
     // Async loaded data (from fetch)
-    fetched_data: SharedData,
-    fetched_error: SharedError,
+    pub fetched_data: SharedData,
+    pub fetched_error: SharedError,
 
     // Initial URL to load from query params (consumed on first update)
-    initial_url: Option<String>,
+    pub initial_url: Option<String>,
 
     // Base pixels_per_point for scaling calculations (set on first frame)
-    base_pixels_per_point: Option<f32>,
+    pub base_pixels_per_point: Option<f32>,
 
     // Menu dialog state
-    show_url_dialog: bool,
-    url_input: String,
-    url_load_error: Option<String>,
-    show_settings: bool,
-    show_about: bool,
+    pub show_url_dialog: bool,
+    pub url_input: String,
+    pub url_load_error: Option<String>,
+    pub show_settings: bool,
+    pub show_about: bool,
 
     // Time scrubbers (separate for messages and fragments)
-    messages_scrubber: TimeScrubber,
-    fragments_scrubber: TimeScrubber,
+    pub messages_scrubber: TimeScrubber,
+    pub fragments_scrubber: TimeScrubber,
 
     // Marking state for filtered items
-    marked_messages: std::collections::HashSet<usize>,
-    marked_packets: std::collections::HashSet<usize>,
+    pub marked_messages: std::collections::HashSet<usize>,
+    pub marked_packets: std::collections::HashSet<usize>,
 
     // Desktop: pending file from file dialog
-    #[cfg(all(not(target_arch = "wasm32"), feature = "desktop"))]
-    pending_file_path: Option<std::path::PathBuf>,
+    #[cfg(feature = "desktop")]
+    pub pending_file_path: Option<std::path::PathBuf>,
 }
 
 impl Default for PcapViewerApp {
@@ -107,7 +107,7 @@ impl Default for PcapViewerApp {
             fragments_scrubber: TimeScrubber::new(),
             marked_messages: std::collections::HashSet::new(),
             marked_packets: std::collections::HashSet::new(),
-            #[cfg(all(not(target_arch = "wasm32"), feature = "desktop"))]
+            #[cfg(feature = "desktop")]
             pending_file_path: None,
         }
     }
@@ -117,16 +117,6 @@ impl PcapViewerApp {
     pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
         #[allow(unused_mut)]
         let mut app = Self::default();
-
-        // Check for URL query parameter on WASM
-        #[cfg(target_arch = "wasm32")]
-        {
-            if let Some(url) = get_url_from_query_params() {
-                log::info!("Found URL in query params: {}", url);
-                app.initial_url = Some(url);
-                app.status_message = "Loading PCAP from URL...".to_string();
-            }
-        }
 
         app
     }
@@ -257,22 +247,6 @@ impl PcapViewerApp {
     }
 }
 
-/// Get the URL from query parameters (?url=...)
-#[cfg(target_arch = "wasm32")]
-fn get_url_from_query_params() -> Option<String> {
-    let window = web_sys::window()?;
-    let location = window.location();
-    let search = location.search().ok()?;
-
-    if search.is_empty() {
-        return None;
-    }
-
-    // Remove the leading '?' and parse
-    let params = web_sys::UrlSearchParams::new_with_str(&search).ok()?;
-    params.get("url")
-}
-
 impl eframe::App for PcapViewerApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Handle dropped files
@@ -292,7 +266,7 @@ impl eframe::App for PcapViewerApp {
         }
 
         // Desktop: process file from file dialog
-        #[cfg(all(not(target_arch = "wasm32"), feature = "desktop"))]
+        #[cfg(feature = "desktop")]
         if let Some(path) = self.pending_file_path.take() {
             self.status_message = format!("Loading {}...", path.display());
             match std::fs::read(&path) {
@@ -377,7 +351,6 @@ impl eframe::App for PcapViewerApp {
 
         // Track menu actions to execute after borrow ends
         let mut open_url_clicked = false;
-        #[cfg(not(target_arch = "wasm32"))]
         let mut quit_clicked = false;
 
         // Menu bar panel
@@ -403,14 +376,11 @@ impl eframe::App for PcapViewerApp {
                         ui.close_menu();
                     }
 
-                    // Only show Quit on desktop
-                    #[cfg(not(target_arch = "wasm32"))]
-                    {
-                        ui.separator();
-                        if ui.button("Quit").clicked() {
-                            quit_clicked = true;
-                            ui.close_menu();
-                        }
+                    // Quit option
+                    ui.separator();
+                    if ui.button("Quit").clicked() {
+                        quit_clicked = true;
+                        ui.close_menu();
                     }
                 });
 
@@ -428,7 +398,6 @@ impl eframe::App for PcapViewerApp {
             self.show_url_dialog = true;
         }
 
-        #[cfg(not(target_arch = "wasm32"))]
         if quit_clicked {
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
         }
@@ -881,7 +850,7 @@ impl eframe::App for PcapViewerApp {
                     };
 
                     // Desktop: Open File button
-                    #[cfg(all(not(target_arch = "wasm32"), feature = "desktop"))]
+                    #[cfg(feature = "desktop")]
                     {
                         if ui
                             .add_sized(button_size, egui::Button::new("Open File..."))
@@ -937,26 +906,6 @@ impl eframe::App for PcapViewerApp {
                     ui.add_space(5.0);
                     ui.horizontal(|ui| {
                         // Get the full absolute URL for the example
-                        #[cfg(target_arch = "wasm32")]
-                        let example_url = {
-                            if let Some(window) = web_sys::window() {
-                                if let Some(location) = window.location().href().ok() {
-                                    // Build absolute URL from current location
-                                    if let Ok(url) =
-                                        web_sys::Url::new_with_base("example.pcap", &location)
-                                    {
-                                        url.href()
-                                    } else {
-                                        "./example.pcap".to_string()
-                                    }
-                                } else {
-                                    "./example.pcap".to_string()
-                                }
-                            } else {
-                                "./example.pcap".to_string()
-                            }
-                        };
-                        #[cfg(not(target_arch = "wasm32"))]
                         let example_url = "./example.pcap".to_string();
 
                         let prefix_text = "Example: ";
@@ -1028,66 +977,3 @@ impl eframe::App for PcapViewerApp {
 }
 
 impl PcapViewerApp {}
-
-// WASM entry point
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::prelude::*;
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::JsCast;
-
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen(start)]
-pub fn start() -> Result<(), JsValue> {
-    // Redirect panics to console.error
-    console_error_panic_hook::set_once();
-
-    // Redirect tracing to console.log
-    tracing_wasm::set_as_global_default();
-
-    let web_options = eframe::WebOptions::default();
-
-    wasm_bindgen_futures::spawn_local(async {
-        let document = web_sys::window().unwrap().document().unwrap();
-        let canvas = document
-            .get_element_by_id("ac_pcap_canvas")
-            .expect("Failed to find canvas element")
-            .dyn_into::<web_sys::HtmlCanvasElement>()
-            .expect("Element is not a canvas");
-
-        let start_result = eframe::WebRunner::new()
-            .start(
-                canvas,
-                web_options,
-                Box::new(|cc| Ok(Box::new(PcapViewerApp::new(cc)))),
-            )
-            .await;
-
-        // Remove loading text and spinner
-        if let Some(loading) = document.get_element_by_id("loading") {
-            loading.remove();
-        }
-
-        if let Err(e) = start_result {
-            log::error!("Failed to start eframe: {:?}", e);
-        }
-    });
-
-    Ok(())
-}
-
-// Native entry point for testing
-#[cfg(not(target_arch = "wasm32"))]
-pub fn main() -> eframe::Result<()> {
-    let native_options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_inner_size([1200.0, 800.0])
-            .with_drag_and_drop(true),
-        ..Default::default()
-    };
-
-    eframe::run_native(
-        "AC PCAP Parser",
-        native_options,
-        Box::new(|cc| Ok(Box::new(PcapViewerApp::new(cc)))),
-    )
-}
