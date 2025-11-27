@@ -37,13 +37,13 @@ pub fn json_contains_string(value: &serde_json::Value, search: &str) -> bool {
             } else {
                 false
             }
-        },
+        }
         serde_json::Value::Array(arr) => arr.iter().any(|v| json_contains_string(v, search)),
         serde_json::Value::Object(obj) => {
             // Search in both keys and values
-            obj.keys().any(|k| k.to_lowercase().contains(&search_lower)) ||
-            obj.values().any(|v| json_contains_string(v, search))
-        },
+            obj.keys().any(|k| k.to_lowercase().contains(&search_lower))
+                || obj.values().any(|v| json_contains_string(v, search))
+        }
         _ => false,
     }
 }
