@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 use std::collections::HashMap;
 use std::fs::File;
 
-use lib::{messages::ParsedMessage, PacketParser, ParsedPacket, Direction};
+use lib::{messages::ParsedMessage, Direction, PacketParser, ParsedPacket};
 
 mod filter;
 mod tui;

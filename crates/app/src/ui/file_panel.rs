@@ -1,8 +1,8 @@
 //! File loading and management UI components
 
 use crate::{PcapViewerApp, Tab};
-use lib::PacketParser;
 use eframe::egui;
+use lib::PacketParser;
 
 /// Parse PCAP data and update the app state
 pub fn parse_pcap_data(app: &mut PcapViewerApp, data: &[u8]) {

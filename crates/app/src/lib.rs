@@ -7,8 +7,8 @@ mod state;
 mod time_scrubber;
 mod ui;
 
-use lib::{messages::ParsedMessage, ParsedPacket};
 use eframe::egui;
+use lib::{messages::ParsedMessage, ParsedPacket};
 use std::sync::{Arc, Mutex};
 use time_scrubber::TimeScrubber;
 

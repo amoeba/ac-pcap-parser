@@ -13,7 +13,7 @@ use ratatui::{
 };
 use std::io::{self, Stdout};
 
-use lib::{messages::ParsedMessage, ParsedPacket, Direction as PktDirection, Tab};
+use lib::{messages::ParsedMessage, Direction as PktDirection, ParsedPacket, Tab};
 
 use crate::filter;
 
