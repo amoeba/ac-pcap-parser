@@ -892,9 +892,7 @@ impl eframe::App for PcapViewerApp {
                         };
                         ui.hyperlink_to(
                             egui::RichText::new(format!("#{short_sha}")).small(),
-                            format!(
-                                "https://github.com/amoeba/ac-pcap-parser/commit/{git_sha}"
-                            ),
+                            format!("https://github.com/amoeba/ac-pcap-parser/commit/{git_sha}"),
                         );
                         ui.hyperlink_to(
                             egui::RichText::new("GitHub").small(),
