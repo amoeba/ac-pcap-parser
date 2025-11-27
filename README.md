@@ -23,6 +23,7 @@ None of this would be possible without [trevis](https://github.com/trevis) open 
 - Interactive JSON tree viewer
 - Hex editor for binary data
 - Search and filter parsed packets
+- Mark filtered messages/packets and visualize on timeline
 - Time scrubber with packet density visualization
 - Dark/light mode toggle
 - Responsive layout (mobile-friendly)

@@ -120,14 +120,14 @@ fn print_summary(packets: &[ParsedPacket], messages: &[ParsedMessage]) {
         .filter(|p| matches!(p.direction, Direction::Recv))
         .count();
     println!("\nPackets by Direction:");
-    println!("  Send (C→S): {}", send_packets);
-    println!("  Recv (S→C): {}", recv_packets);
+    println!("  Send (C→S): {send_packets}");
+    println!("  Recv (S→C): {recv_packets}");
 
     let send_msgs = messages.iter().filter(|m| m.direction == "Send").count();
     let recv_msgs = messages.iter().filter(|m| m.direction == "Recv").count();
     println!("\nMessages by Direction:");
-    println!("  Send (C→S): {}", send_msgs);
-    println!("  Recv (S→C): {}", recv_msgs);
+    println!("  Send (C→S): {send_msgs}");
+    println!("  Recv (S→C): {recv_msgs}");
 
     let mut type_counts: HashMap<&str, usize> = HashMap::new();
     for msg in messages {
@@ -139,7 +139,7 @@ fn print_summary(packets: &[ParsedPacket], messages: &[ParsedMessage]) {
 
     println!("\nMessage Types (top 20):");
     for (t, count) in sorted_types.iter().take(20) {
-        println!("  {:40} {:>5}", t, count);
+        println!("  {t:40} {count:>5}");
     }
 
     if sorted_types.len() > 20 {

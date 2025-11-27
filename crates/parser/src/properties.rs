@@ -712,7 +712,7 @@ pub fn property_int_name(key: u32) -> String {
         388 => "GearOverpower",
         389 => "GearOverpowerResist",
         390 => "Enlightenment",
-        _ => return format!("PropertyInt_{}", key),
+        _ => return format!("PropertyInt_{key}"),
     }
     .to_string()
 }
@@ -727,7 +727,7 @@ pub fn property_int64_name(key: u32) -> String {
         6 => "AvailableLuminance",
         7 => "MaximumLuminance",
         8 => "InteractionReqs",
-        _ => return format!("Int64_{}", key),
+        _ => return format!("Int64_{key}"),
     }
     .to_string()
 }
@@ -866,7 +866,7 @@ pub fn property_bool_name(key: u32) -> String {
         128 => "HadNoVitae",
         129 => "NoOlthoiTalk",
         130 => "AutowieldLeft",
-        _ => return format!("Bool_{}", key),
+        _ => return format!("Bool_{key}"),
     }
     .to_string()
 }
@@ -1046,7 +1046,7 @@ pub fn property_float_name(key: u32) -> String {
         169 => "WeaponAuraDefense",
         170 => "WeaponAuraElemental",
         171 => "WeaponAuraManaConv",
-        _ => return format!("Float_{}", key),
+        _ => return format!("Float_{key}"),
     }
     .to_string()
 }
@@ -1106,7 +1106,7 @@ pub fn property_string_name(key: u32) -> String {
         50 => "KillQuest3",
         51 => "UseSendsSignal",
         52 => "GearPlatingName",
-        _ => return format!("String_{}", key),
+        _ => return format!("String_{key}"),
     }
     .to_string()
 }
@@ -1175,7 +1175,7 @@ pub fn property_dataid_name(key: u32) -> String {
         59 => "YellowSurgeSpell",
         60 => "RedSurgeSpell",
         61 => "OlthoiDeathTreasureType",
-        _ => return format!("DataId_{}", key),
+        _ => return format!("DataId_{key}"),
     }
     .to_string()
 }
@@ -1344,7 +1344,7 @@ pub fn sound_type_name(key: u32) -> String {
             if (0x98..=0xC9).contains(&key) {
                 return format!("TriggerActivated{}", key - 0x97);
             }
-            return format!("Sound_{}", key);
+            return format!("Sound_{key}");
         }
     }
     .to_string()
@@ -1390,7 +1390,7 @@ pub fn item_type_name(key: u32) -> String {
         0x20000000 => "TinkeringTool",
         0x40000000 => "TinkeringMaterial",
         0x80000000 => "Gameboard",
-        _ => return format!("ItemType_{}", key),
+        _ => return format!("ItemType_{key}"),
     }
     .to_string()
 }
@@ -1499,7 +1499,7 @@ pub fn creature_type_name(key: u32) -> String {
         99 => "GearKnight",
         100 => "Gurog",
         101 => "Anekshay",
-        _ => return format!("CreatureType_{}", key),
+        _ => return format!("CreatureType_{key}"),
     }
     .to_string()
 }
@@ -1520,7 +1520,7 @@ pub fn damage_type_name(key: u32) -> String {
         0x200 => "Mana",
         0x400 => "Nether",
         0x800 => "Base",
-        _ => return format!("DamageType_{}", key),
+        _ => return format!("DamageType_{key}"),
     }
     .to_string()
 }
@@ -1581,7 +1581,7 @@ pub fn skill_id_name(key: u32) -> String {
         0x34 => "DirtyFighting",
         0x35 => "Challenge",
         0x36 => "Summoning",
-        _ => return format!("SkillId_{}", key),
+        _ => return format!("SkillId_{key}"),
     }
     .to_string()
 }
@@ -1640,7 +1640,7 @@ pub fn equipment_set_name(key: u32) -> String {
         138 => "ParagonMissile",
         139 => "ParagonCaster",
         140 => "ParagonMelee",
-        _ => return format!("EquipmentSet_{}", key),
+        _ => return format!("EquipmentSet_{key}"),
     }
     .to_string()
 }
@@ -1683,7 +1683,7 @@ pub fn equip_mask_name(key: u32) -> String {
         .collect();
 
     if names.is_empty() {
-        format!("EquipMask_{}", key)
+        format!("EquipMask_{key}")
     } else {
         names.join(", ")
     }
@@ -1696,7 +1696,7 @@ pub fn combat_mode_name(key: u32) -> String {
         0x2 => "Melee",
         0x4 => "Missile",
         0x8 => "Magic",
-        _ => return format!("CombatMode_{}", key),
+        _ => return format!("CombatMode_{key}"),
     }
     .to_string()
 }
@@ -1718,7 +1718,7 @@ pub fn heritage_group_name(key: u32) -> String {
         11 => "Undead",
         12 => "Olthoi",
         13 => "OlthoiAcid",
-        _ => return format!("HeritageGroup_{}", key),
+        _ => return format!("HeritageGroup_{key}"),
     }
     .to_string()
 }
@@ -1739,7 +1739,7 @@ pub fn weapon_type_name(key: u32) -> String {
         10 => "Thrown",
         11 => "TwoHanded",
         12 => "Magic",
-        _ => return format!("WeaponType_{}", key),
+        _ => return format!("WeaponType_{key}"),
     }
     .to_string()
 }
@@ -1819,7 +1819,7 @@ pub fn material_type_name(key: u32) -> String {
         75 => "Oak",
         76 => "Pine",
         77 => "Teak",
-        _ => return format!("MaterialType_{}", key),
+        _ => return format!("MaterialType_{key}"),
     }
     .to_string()
 }
@@ -1830,7 +1830,7 @@ pub fn gender_name(key: u32) -> String {
         0 => "Invalid",
         1 => "Male",
         2 => "Female",
-        _ => return format!("Gender_{}", key),
+        _ => return format!("Gender_{key}"),
     }
     .to_string()
 }
@@ -1854,7 +1854,7 @@ pub fn attack_type_name(key: u32) -> String {
         0x1000 => "OffhandTripleSlash",
         0x2000 => "OffhandDoubleThrust",
         0x4000 => "OffhandTripleThrust",
-        _ => return format!("AttackType_{}", key),
+        _ => return format!("AttackType_{key}"),
     }
     .to_string()
 }
@@ -1865,7 +1865,7 @@ pub fn attack_height_name(key: u32) -> String {
         0x01 => "High",
         0x02 => "Medium",
         0x03 => "Low",
-        _ => return format!("AttackHeight_{}", key),
+        _ => return format!("AttackHeight_{key}"),
     }
     .to_string()
 }
@@ -1890,7 +1890,7 @@ pub fn combat_style_name(key: u32) -> String {
         0x20000 => "StubbornProjectile",
         0x40000 => "StubbornMelee",
         0x80000 => "StubbornMissile",
-        _ => return format!("CombatStyle_{}", key),
+        _ => return format!("CombatStyle_{key}"),
     }
     .to_string()
 }
@@ -1912,7 +1912,7 @@ pub fn placement_name(key: u32) -> String {
         0x65 => "Resting",
         0x66 => "Other",
         0x67 => "Hook",
-        _ => return format!("Placement_{}", key),
+        _ => return format!("Placement_{key}"),
     }
     .to_string()
 }
@@ -1933,7 +1933,7 @@ pub fn wield_requirement_name(key: u32) -> String {
         10 => "BoolStat",
         11 => "CreatureType",
         12 => "HeritageType",
-        _ => return format!("WieldRequirement_{}", key),
+        _ => return format!("WieldRequirement_{key}"),
     }
     .to_string()
 }
@@ -1956,7 +1956,7 @@ pub fn coverage_mask_name(key: u32) -> String {
         0x00004000 => "Head",
         0x00008000 => "Hands",
         0x00010000 => "Feet",
-        _ => return format!("CoverageMask_{}", key),
+        _ => return format!("CoverageMask_{key}"),
     }
     .to_string()
 }
@@ -1969,7 +1969,7 @@ pub fn ammo_type_name(key: u32) -> String {
         2 => "Bolt",
         4 => "Atlatl",
         8 => "ThrownWeapon",
-        _ => return format!("AmmoType_{}", key),
+        _ => return format!("AmmoType_{key}"),
     }
     .to_string()
 }
@@ -1983,7 +1983,7 @@ pub fn combat_use_name(key: u32) -> String {
         4 => "Ammo",
         8 => "Shield",
         16 => "TwoHanded",
-        _ => return format!("CombatUse_{}", key),
+        _ => return format!("CombatUse_{key}"),
     }
     .to_string()
 }
@@ -2001,7 +2001,7 @@ pub fn parent_location_name(key: u32) -> String {
         7 => "Mouth",
         8 => "LeftWeapon",
         9 => "LeftUnarmed",
-        _ => return format!("ParentLocation_{}", key),
+        _ => return format!("ParentLocation_{key}"),
     }
     .to_string()
 }
@@ -2020,7 +2020,7 @@ pub fn radar_color_name(key: u32) -> String {
         8 => "Yellow",
         9 => "Cyan",
         10 => "BrightGreen",
-        _ => return format!("RadarColor_{}", key),
+        _ => return format!("RadarColor_{key}"),
     }
     .to_string()
 }
@@ -2033,7 +2033,7 @@ pub fn radar_behavior_name(key: u32) -> String {
         2 => "ShowMovement",
         3 => "ShowAttacking",
         4 => "ShowAlways",
-        _ => return format!("RadarBehavior_{}", key),
+        _ => return format!("RadarBehavior_{key}"),
     }
     .to_string()
 }
@@ -2048,7 +2048,7 @@ pub fn armor_type_name(key: u32) -> String {
         8 => "Scalemail",
         16 => "Chainmail",
         32 => "Metal",
-        _ => return format!("ArmorType_{}", key),
+        _ => return format!("ArmorType_{key}"),
     }
     .to_string()
 }
@@ -2075,7 +2075,7 @@ pub fn imbued_effect_type_name(key: u32) -> String {
         0x20000000 => "IgnoreSomeMagicProjectileDamage",
         0x40000000 => "AlwaysCritical",
         0x80000000 => "IgnoreAllArmor",
-        _ => return format!("ImbuedEffectType_{}", key),
+        _ => return format!("ImbuedEffectType_{key}"),
     }
     .to_string()
 }
@@ -2097,7 +2097,7 @@ pub fn ui_effects_name(key: u32) -> String {
         0x0400 => "Slashing",
         0x0800 => "Piercing",
         0x1000 => "Nether",
-        _ => return format!("UiEffects_{}", key),
+        _ => return format!("UiEffects_{key}"),
     }
     .to_string()
 }
@@ -2125,7 +2125,7 @@ pub fn usable_name(key: u32) -> String {
         0x00080000 => "SourceContainedTargetWielded",
         0x000C0000 => "SourceContainedTargetContained",
         0x000C8000 => "SourceContainedTargetSelfOrContained",
-        _ => return format!("Usable_{}", key),
+        _ => return format!("Usable_{key}"),
     }
     .to_string()
 }
@@ -2138,7 +2138,7 @@ pub fn bonded_status_name(key: u32) -> String {
         2 => "Sticky",
         0xFFFFFFFF => "Slippery",
         0xFFFFFFFE => "Destroy",
-        _ => return format!("BondedStatus_{}", key),
+        _ => return format!("BondedStatus_{key}"),
     }
     .to_string()
 }
@@ -2149,7 +2149,7 @@ pub fn attuned_status_name(key: u32) -> String {
         0 => "Normal",
         1 => "Attuned",
         2 => "Sticky",
-        _ => return format!("AttunedStatus_{}", key),
+        _ => return format!("AttunedStatus_{key}"),
     }
     .to_string()
 }
@@ -2161,7 +2161,7 @@ pub fn house_type_name(key: u32) -> String {
         2 => "Villa",
         3 => "Mansion",
         4 => "Apartment",
-        _ => return format!("HouseType_{}", key),
+        _ => return format!("HouseType_{key}"),
     }
     .to_string()
 }
@@ -2171,7 +2171,7 @@ pub fn hook_type_name(key: u32) -> String {
     match key {
         0x0001 => "Floor",
         0x0002 => "Wall",
-        _ => return format!("HookType_{}", key),
+        _ => return format!("HookType_{key}"),
     }
     .to_string()
 }
@@ -2206,7 +2206,7 @@ pub fn palette_template_name(key: u32) -> String {
         39 => "Black",
         40 => "Bronze",
         41..=88 => "ColorVariant",
-        _ => return format!("PaletteTemplate_{}", key),
+        _ => return format!("PaletteTemplate_{key}"),
     }
     .to_string()
 }
@@ -2218,7 +2218,7 @@ pub fn faction_bits_name(key: u32) -> String {
         0x01 => "CelestialHand",
         0x02 => "EldrytchWeb",
         0x04 => "RadiantBlood",
-        _ => return format!("FactionBits_{}", key),
+        _ => return format!("FactionBits_{key}"),
     }
     .to_string()
 }
@@ -2236,7 +2236,7 @@ pub fn portal_bitmask_name(key: u32) -> String {
         0x40 => "NoOlthoiPCs",
         0x80 => "NoVitae",
         0x100 => "NoNewAccounts",
-        _ => return format!("PortalBitmask_{}", key),
+        _ => return format!("PortalBitmask_{key}"),
     }
     .to_string()
 }
@@ -2248,7 +2248,7 @@ pub fn aetheria_bitfield_name(key: u32) -> String {
         0x1 => "Blue",
         0x2 => "Yellow",
         0x4 => "Red",
-        _ => return format!("AetheriaBitfield_{}", key),
+        _ => return format!("AetheriaBitfield_{key}"),
     }
     .to_string()
 }
@@ -2260,7 +2260,7 @@ pub fn summoning_mastery_name(key: u32) -> String {
         1 => "Primalist",
         2 => "Necromancer",
         3 => "Naturalist",
-        _ => return format!("SummoningMastery_{}", key),
+        _ => return format!("SummoningMastery_{key}"),
     }
     .to_string()
 }
@@ -2285,7 +2285,7 @@ pub fn armor_highlight_mask_name(key: u16) -> String {
         .collect();
 
     if names.is_empty() {
-        format!("ArmorHighlight_{}", key)
+        format!("ArmorHighlight_{key}")
     } else {
         names.join(", ")
     }
@@ -2309,7 +2309,7 @@ pub fn weapon_highlight_mask_name(key: u16) -> String {
         .collect();
 
     if names.is_empty() {
-        format!("WeaponHighlight_{}", key)
+        format!("WeaponHighlight_{key}")
     } else {
         names.join(", ")
     }
@@ -2342,7 +2342,7 @@ pub fn resist_highlight_mask_name(key: u16) -> String {
         .collect();
 
     if names.is_empty() {
-        format!("ResistHighlight_{}", key)
+        format!("ResistHighlight_{key}")
     } else {
         names.join(", ")
     }

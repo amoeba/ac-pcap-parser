@@ -257,7 +257,7 @@ impl PacketParser {
         let _group = reader.read_u16()?;
 
         if size < 16 {
-            anyhow::bail!("Invalid fragment size: {}", size);
+            anyhow::bail!("Invalid fragment size: {size}");
         }
 
         let frag_length = size as usize - 16;

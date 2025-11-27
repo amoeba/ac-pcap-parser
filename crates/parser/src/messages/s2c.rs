@@ -401,7 +401,7 @@ pub fn parse_game_event(
             let type_name = if evt_type != GameEventType::Unknown {
                 evt_type.name().to_string()
             } else {
-                format!("GameEvent_{:04X}", event_type)
+                format!("GameEvent_{event_type:04X}")
             };
             let remaining = reader.remaining();
             let raw_data = if remaining > 0 {
@@ -844,7 +844,7 @@ fn stance_mode_name(value: u16) -> String {
         0x0048 => "BowNoAmmo".to_string(),
         0x0049 => "CrossBowNoAmmo".to_string(),
         0x0050 => "AtlatlCombat".to_string(),
-        _ => format!("Stance_{}", value),
+        _ => format!("Stance_{value}"),
     }
 }
 
@@ -1003,7 +1003,7 @@ impl CommunicationTextboxString {
             _ => {
                 return Ok(Self {
                     text,
-                    chat_type: format!("Unknown_{}", chat_type_raw),
+                    chat_type: format!("Unknown_{chat_type_raw}"),
                     opcode: 0xF7E0,
                     message_type: "Communication_TextboxString".to_string(),
                     message_direction: "ServerToClient".to_string(),
@@ -1109,10 +1109,7 @@ impl ObjectDescription {
         // Validate counts are reasonable
         if palette_count > 100 || texture_count > 100 || model_count > 100 {
             anyhow::bail!(
-                "Suspicious ObjDesc counts: pal={} tex={} model={}",
-                palette_count,
-                texture_count,
-                model_count
+                "Suspicious ObjDesc counts: pal={palette_count} tex={texture_count} model={model_count}"
             );
         }
 
@@ -1754,7 +1751,7 @@ fn spell_category_name(id: u16) -> String {
         4 => "QuicknessRaising".to_string(),
         5 => "FocusRaising".to_string(),
         6 => "SelfRaising".to_string(),
-        _ => format!("Category_{}", id),
+        _ => format!("Category_{id}"),
     }
 }
 
@@ -1824,7 +1821,7 @@ fn stat_mod_type_name(flags: u32) -> String {
     }
 
     if parts.is_empty() {
-        format!("StatModType_{}", flags)
+        format!("StatModType_{flags}")
     } else {
         parts.join(", ")
     }
@@ -1875,7 +1872,7 @@ fn equipment_set_name(id: u32) -> String {
         39 => "AetheriaVigor",
         40 => "RareDamageResistance",
         41 => "RareDamageBoost",
-        _ => return format!("Set_{}", id),
+        _ => return format!("Set_{id}"),
     }
     .to_string()
 }
@@ -1945,7 +1942,7 @@ impl ItemServerSaysContainId {
                     object_id,
                     container_id,
                     slot_index,
-                    container_type: format!("ContainerType_{}", container_type_raw),
+                    container_type: format!("ContainerType_{container_type_raw}"),
                     ordered_object_id,
                     ordered_sequence,
                     event_type: "Item_ServerSaysContainId".to_string(),
@@ -1980,7 +1977,7 @@ fn vital_name(key: u32) -> String {
         2 => "Health",  // CurrentHealth = 0x02
         4 => "Stamina", // CurrentStamina = 0x04
         6 => "Mana",    // CurrentMana = 0x06
-        _ => return format!("Vital_{}", key),
+        _ => return format!("Vital_{key}"),
     }
     .to_string()
 }
@@ -1990,7 +1987,7 @@ fn property_instance_id_name(key: u32) -> String {
         1 => "Owner",
         2 => "Container",
         3 => "Wielder",
-        _ => return format!("PropertyInstanceId_{}", key),
+        _ => return format!("PropertyInstanceId_{key}"),
     }
     .to_string()
 }
