@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 // Re-export shared enums from lib crate
 // TODO: Re-enable these imports when needed for web UI
+#[allow(unused_imports)]
 // pub use ac_pcap_lib::{Tab, ViewMode, SortField};
 
 // Responsive breakpoints
@@ -12,7 +13,9 @@ pub const TABLET_BREAKPOINT: f32 = 1024.0;
 pub const MOBILE_SCALE: f32 = 1.5;
 
 // Shared state for async loading
+#[allow(dead_code)]
 pub type SharedData = Arc<Mutex<Option<Vec<u8>>>>;
+#[allow(dead_code)]
 pub type SharedError = Arc<Mutex<Option<String>>>;
 
 /// Recursively search for a string within a JSON value (case-insensitive)
