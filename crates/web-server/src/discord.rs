@@ -82,6 +82,8 @@ pub async fn fetch_message(
                 "Failed to parse Discord response".to_string(),
             )
         })?;
+        
+        debug!("Successfully fetched message from Discord: {}", message.id);
 
         // Validate that message has at least one PCAP attachment
         let has_pcap = message
@@ -100,9 +102,14 @@ pub async fn fetch_message(
         Ok(message)
     } else {
         let status = response.status().as_u16();
-        error!("Discord API error: {}", status);
+        let body = response.text().await.unwrap_or_default();
+        error!("Discord API error: {} - {}", status, body);
 
         match status {
+            401 => Err((
+                StatusCode::UNAUTHORIZED,
+                "Discord authentication failed (invalid or missing token)".to_string(),
+            )),
             404 => Err((
                 StatusCode::NOT_FOUND,
                 "Discord message not found".to_string(),

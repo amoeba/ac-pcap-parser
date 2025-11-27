@@ -46,7 +46,7 @@ fn create_router() -> Router {
     Router::new()
         .route("/api/health", get(health))
         .route("/api/discord", get(discord_pull))
-        .nest_service("/", ServeDir::new(&dist_path))
+        .fallback_service(ServeDir::new(&dist_path))
 }
 
 /// Health check endpoint
@@ -56,7 +56,9 @@ async fn health() -> &'static str {
 
 #[derive(Deserialize)]
 struct DiscordQuery {
+    #[serde(default)]
     channel: String,
+    #[serde(default)]
     msg: String,
 }
 
@@ -69,6 +71,8 @@ struct DiscordError {
 async fn discord_pull(
     Query(params): Query<DiscordQuery>,
 ) -> Result<Vec<u8>, (StatusCode, Json<DiscordError>)> {
+    info!("Discord pull request: channel={}, msg={}", params.channel, params.msg);
+    
     // Validate channel and message IDs
     if params.channel.is_empty() || params.msg.is_empty() {
         return Err((
