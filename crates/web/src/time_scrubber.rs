@@ -165,11 +165,10 @@ impl TimeScrubber {
                     }
 
                     // Reset Marks button (only show if there are marked timestamps)
-                    if self.has_marked_timestamps() {
-                        if ui.button("Reset Marks").clicked() {
+                    if self.has_marked_timestamps()
+                        && ui.button("Reset Marks").clicked() {
                             response.reset_marks_clicked = true;
                         }
-                    }
 
                     // Show time range
                     let range_text = if selected_range.is_full_range(data_range.min, data_range.max)

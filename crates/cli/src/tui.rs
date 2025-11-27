@@ -388,8 +388,7 @@ fn ui(f: &mut Frame, app: &mut App) {
             },
         };
         format!(
-            "q:Quit Tab:Switch ↑↓/jk:Nav PgUp/PgDn:Page s:Sort({}{}) r:Reverse Enter:Detail /:Search",
-            sort_field, sort_indicator
+            "q:Quit Tab:Switch ↑↓/jk:Nav PgUp/PgDn:Page s:Sort({sort_field}{sort_indicator}) r:Reverse Enter:Detail /:Search"
         )
     };
 

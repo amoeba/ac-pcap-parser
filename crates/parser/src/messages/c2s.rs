@@ -66,7 +66,7 @@ pub fn parse_game_action(
                 vec![]
             };
             Ok((
-                format!("GameAction_{:04X}", action_type),
+                format!("GameAction_{action_type:04X}"),
                 serde_json::json!({
                     "OrderedSequence": sequence,
                     "ActionType": action_type,

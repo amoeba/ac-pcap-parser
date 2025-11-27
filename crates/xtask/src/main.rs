@@ -89,8 +89,7 @@ fn build_web(serve: bool, port: u16, small: bool) -> Result<()> {
     // Run wasm-bindgen
     println!("Generating JS bindings...");
     let wasm_file = root.join(format!(
-        "target/wasm32-unknown-unknown/{}/web.wasm",
-        profile_dir
+        "target/wasm32-unknown-unknown/{profile_dir}/web.wasm"
     ));
 
     let status = Command::new("wasm-bindgen")
@@ -114,13 +113,13 @@ fn build_web(serve: bool, port: u16, small: bool) -> Result<()> {
     // Apply cache busting to generated files
     println!("Applying cache busting...");
     let hash = apply_cache_busting(&pkg_dir)?;
-    println!("  Content hash: {}", hash);
+    println!("  Content hash: {hash}");
 
     // Copy index.html with cache-busted references
     println!("Copying assets...");
     let index_src = web_dir.join("index.html");
     let index_content = std::fs::read_to_string(&index_src).context("Failed to read index.html")?;
-    let index_content = index_content.replace("./web.js", &format!("./web.{}.js", hash));
+    let index_content = index_content.replace("./web.js", &format!("./web.{hash}.js"));
     let index_dst = pkg_dir.join("index.html");
     std::fs::write(&index_dst, index_content).context("Failed to write index.html")?;
 
@@ -143,13 +142,13 @@ fn build_web(serve: bool, port: u16, small: bool) -> Result<()> {
         } else if size > 1024 {
             format!("{:.1}K", size as f64 / 1024.0)
         } else {
-            format!("{}B", size)
+            format!("{size}B")
         };
         println!("  {:>8}  {}", size_str, entry.file_name().to_string_lossy());
     }
 
     if serve {
-        println!("\nStarting web server on http://localhost:{}", port);
+        println!("\nStarting web server on http://localhost:{port}");
         println!("Press Ctrl+C to stop");
 
         let status = Command::new("python3")
@@ -198,7 +197,7 @@ fn build_desktop(release: bool, run: bool) -> Result<()> {
     }
 
     let profile = if release { "release" } else { "debug" };
-    let binary_path = root.join(format!("target/{}/ac-pcap-viewer", profile));
+    let binary_path = root.join(format!("target/{profile}/ac-pcap-viewer"));
 
     println!("\nBuild complete!");
     println!("  Binary: {}", binary_path.display());
@@ -238,14 +237,14 @@ fn apply_cache_busting(pkg_dir: &Path) -> Result<String> {
     // Read the JS file and update the wasm reference
     let js_path = pkg_dir.join("web.js");
     let js_content = std::fs::read_to_string(&js_path).context("Failed to read web.js")?;
-    let js_content = js_content.replace("web_bg.wasm", &format!("web_bg.{}.wasm", hash));
+    let js_content = js_content.replace("web_bg.wasm", &format!("web_bg.{hash}.wasm"));
 
     // Write the new JS file with hash in name
-    let new_js_path = pkg_dir.join(format!("web.{}.js", hash));
+    let new_js_path = pkg_dir.join(format!("web.{hash}.js"));
     std::fs::write(&new_js_path, js_content).context("Failed to write hashed web.js")?;
 
     // Rename the wasm file with hash
-    let new_wasm_path = pkg_dir.join(format!("web_bg.{}.wasm", hash));
+    let new_wasm_path = pkg_dir.join(format!("web_bg.{hash}.wasm"));
     std::fs::rename(&wasm_path, &new_wasm_path).context("Failed to rename wasm file")?;
 
     // Remove old JS file (keep pkg clean)

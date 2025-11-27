@@ -206,7 +206,7 @@ impl PcapViewerApp {
                 self.fragments_scrubber.update_density(&packet_timestamps);
             }
             Err(e) => {
-                self.status_message = format!("Error parsing PCAP: {}", e);
+                self.status_message = format!("Error parsing PCAP: {e}");
             }
         }
         self.is_loading = false;
@@ -545,7 +545,7 @@ impl eframe::App for PcapViewerApp {
             self.status_message = format!("Loading {}...", path.display());
             match std::fs::read(&path) {
                 Ok(data) => self.parse_pcap_data(&data),
-                Err(e) => self.status_message = format!("Error reading file: {}", e),
+                Err(e) => self.status_message = format!("Error reading file: {e}"),
             }
         }
 
@@ -891,10 +891,9 @@ impl eframe::App for PcapViewerApp {
                             git_sha
                         };
                         ui.hyperlink_to(
-                            egui::RichText::new(format!("#{}", short_sha)).small(),
+                            egui::RichText::new(format!("#{short_sha}")).small(),
                             format!(
-                                "https://github.com/amoeba/ac-pcap-parser/commit/{}",
-                                git_sha
+                                "https://github.com/amoeba/ac-pcap-parser/commit/{git_sha}"
                             ),
                         );
                         ui.hyperlink_to(
@@ -1173,7 +1172,7 @@ impl eframe::App for PcapViewerApp {
                         let example_url = "./example.pcap".to_string();
 
                         let prefix_text = "Example: ";
-                        let full_text = format!("{}{}", prefix_text, example_url);
+                        let full_text = format!("{prefix_text}{example_url}");
 
                         // Calculate width for centering the entire line
                         let total_width = ui.fonts(|f| {
@@ -1368,7 +1367,7 @@ impl eframe::App for PcapViewerApp {
                         } else {
                             git_sha
                         };
-                        ui.label(format!("Version: {}", short_sha));
+                        ui.label(format!("Version: {short_sha}"));
 
                         ui.add_space(10.0);
                         ui.separator();
@@ -1499,7 +1498,7 @@ impl PcapViewerApp {
                 Tab::Messages => {
                     if let Some(idx) = self.selected_message {
                         if idx < self.messages.len() {
-                            let tree_id = format!("message_tree_{}", idx);
+                            let tree_id = format!("message_tree_{idx}");
                             JsonTree::new(&tree_id, &self.messages[idx].data)
                                 .default_expand(egui_json_tree::DefaultExpand::ToLevel(1))
                                 .show(ui);
@@ -1514,7 +1513,7 @@ impl PcapViewerApp {
                     if let Some(idx) = self.selected_packet {
                         if idx < self.packets.len() {
                             if let Ok(value) = serde_json::to_value(&self.packets[idx]) {
-                                let tree_id = format!("packet_tree_{}", idx);
+                                let tree_id = format!("packet_tree_{idx}");
                                 JsonTree::new(&tree_id, &value)
                                     .default_expand(egui_json_tree::DefaultExpand::ToLevel(1))
                                     .show(ui);
@@ -1628,7 +1627,7 @@ impl PcapViewerApp {
 
             // Offset column
             job.append(
-                &format!("{:08x}  ", offset),
+                &format!("{offset:08x}  "),
                 0.0,
                 TextFormat {
                     font_id: font_id.clone(),
@@ -1640,7 +1639,7 @@ impl PcapViewerApp {
             // Hex bytes
             for (j, byte) in chunk.iter().enumerate() {
                 job.append(
-                    &format!("{:02x} ", byte),
+                    &format!("{byte:02x} "),
                     0.0,
                     TextFormat {
                         font_id: font_id.clone(),
@@ -2237,7 +2236,7 @@ impl PcapViewerApp {
                                 ui,
                                 is_selected,
                                 is_marked,
-                                format!("{:08X}", flags),
+                                format!("{flags:08X}"),
                             )
                             .clicked()
                             {
