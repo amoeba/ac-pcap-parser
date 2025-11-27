@@ -164,8 +164,9 @@ fn output_messages(
     output: OutputFormat,
 ) {
     // Parse opcode filter if provided
-    let opcode_filter: Option<u32> = filter_opcode.and_then(|s| filter::parse_opcode_filter(s).ok());
-    
+    let opcode_filter: Option<u32> =
+        filter_opcode.and_then(|s| filter::parse_opcode_filter(s).ok());
+
     let mut filtered: Vec<&ParsedMessage> = messages
         .iter()
         .filter(|m| {

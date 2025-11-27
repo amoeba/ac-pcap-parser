@@ -355,12 +355,16 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> 
                     // Ensure something is selected before showing detail
                     match app.current_tab {
                         Tab::Messages => {
-                            if app.message_state.selected().is_none() && !app.filtered_messages().is_empty() {
+                            if app.message_state.selected().is_none()
+                                && !app.filtered_messages().is_empty()
+                            {
                                 app.message_state.select(Some(0));
                             }
                         }
                         Tab::Fragments => {
-                            if app.packet_state.selected().is_none() && !app.filtered_packets().is_empty() {
+                            if app.packet_state.selected().is_none()
+                                && !app.filtered_packets().is_empty()
+                            {
                                 app.packet_state.select(Some(0));
                             }
                         }
@@ -460,7 +464,10 @@ fn ui(f: &mut Frame, app: &mut App) {
             SearchMode::Type => "Type Search",
             SearchMode::Opcode => "OpCode Filter (0xF7B1 or 63409)",
         };
-        format!("{}: {}█  (Enter/Esc to finish)", mode_label, app.search_query)
+        format!(
+            "{}: {}█  (Enter/Esc to finish)",
+            mode_label, app.search_query
+        )
     } else {
         let sort_indicator = if app.sort_ascending { "↑" } else { "↓" };
         let sort_field = match app.current_tab {
@@ -475,19 +482,19 @@ fn ui(f: &mut Frame, app: &mut App) {
                 PacketSort::Direction => "Dir",
             },
         };
-        
+
         let dir_filter = match app.filter_direction.as_deref() {
             None => "All".to_string(),
             Some("Send") => "Send".to_string(),
             Some("Recv") => "Recv".to_string(),
             _ => "All".to_string(),
         };
-        
+
         let opcode_filter = match app.filter_opcode {
             None => "None".to_string(),
             Some(oc) => format!("{:04X}", oc),
         };
-        
+
         format!(
             "q:Quit Tab:Switch ↑↓/jk:Nav PgUp/PgDn:Page s:Sort({sort_field}{sort_indicator}) r:Reverse Enter:Detail /:Search f:Dir({dir_filter}) o:OpCode({opcode_filter})"
         )

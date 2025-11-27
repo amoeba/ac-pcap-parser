@@ -1,6 +1,6 @@
 //! Packet and message list UI components
 
-use crate::filter::{parse_filter_string, matches_any_filter};
+use crate::filter::{matches_any_filter, parse_filter_string};
 use crate::state::json_contains_string;
 use crate::{PcapViewerApp, SortField};
 // TODO: Re-enable this import when needed
@@ -196,25 +196,25 @@ pub fn show_messages_list(app: &mut PcapViewerApp, ui: &mut egui::Ui, is_mobile:
             } else {
                 // Parse search string into rich filters (supports hex, decimal, and text)
                 let filters = parse_filter_string(&search);
-                
+
                 // Check if any filter matches
                 let mut matches = false;
-                
+
                 // Search in message ID
                 if matches_any_filter(&filters, &m.id.to_string()) {
                     matches = true;
                 }
-                
+
                 // Check opcode match
                 if !matches && matches_any_filter(&filters, &m.opcode) {
                     matches = true;
                 }
-                
+
                 // Check direction match
                 if !matches && matches_any_filter(&filters, &m.direction) {
                     matches = true;
                 }
-                
+
                 // Check if filter matches in data fields
                 if !matches {
                     let data_str = serde_json::to_string(&m.data).unwrap_or_default();
@@ -222,14 +222,14 @@ pub fn show_messages_list(app: &mut PcapViewerApp, ui: &mut egui::Ui, is_mobile:
                         matches = true;
                     }
                 }
-                
+
                 // Always also do text search (type and data)
                 if !matches {
                     let type_matches = m.message_type.to_lowercase().contains(&search);
                     let data_matches = json_contains_string(&m.data, &search);
                     matches = type_matches || data_matches;
                 }
-                
+
                 matches
             };
 

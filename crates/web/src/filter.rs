@@ -12,38 +12,32 @@ pub enum Filter {
 }
 
 /// Parse a single search/filter string into rich filters
-/// 
+///
 /// Examples:
 /// - "apple" → [StringValue("apple")]
 /// - "1234" → [DecimalValue(1234)]
 /// - "0xABCD" → [HexValue(43981), DecimalValue(43981)]
 pub fn parse_filter_string(s: &str) -> Vec<Filter> {
     let s = s.trim();
-    
+
     if s.is_empty() {
         return vec![];
     }
-    
+
     // Try to parse as hex with 0x prefix
     if (s.starts_with("0x") || s.starts_with("0X")) && s.len() > 2 {
         if let Ok(value) = u32::from_str_radix(&s[2..], 16) {
             // Return both hex and decimal representations
-            return vec![
-                Filter::HexValue(value),
-                Filter::DecimalValue(value),
-            ];
+            return vec![Filter::HexValue(value), Filter::DecimalValue(value)];
         }
     }
-    
+
     // Try to parse as decimal number
     if let Ok(value) = s.parse::<u32>() {
         // Return both hex and decimal representations
-        return vec![
-            Filter::DecimalValue(value),
-            Filter::HexValue(value),
-        ];
+        return vec![Filter::DecimalValue(value), Filter::HexValue(value)];
     }
-    
+
     // Fall back to string match
     vec![Filter::StringValue(s.to_lowercase())]
 }
@@ -141,10 +135,10 @@ mod tests {
     fn test_opcode_filtering_with_hex_input() {
         // User types "0xF7B1" in search
         let filters = parse_filter_string("0xF7B1");
-        
+
         // Should find message with OpCode "F7B1"
         assert!(matches_any_filter(&filters, "F7B1"));
-        
+
         // Should also find decimal equivalent in data
         assert!(matches_any_filter(&filters, "63409"));
     }
@@ -153,10 +147,10 @@ mod tests {
     fn test_opcode_filtering_with_decimal_input() {
         // User types "63409" in search
         let filters = parse_filter_string("63409");
-        
+
         // Should find message with OpCode "F7B1"
         assert!(matches_any_filter(&filters, "F7B1"));
-        
+
         // Should also find decimal
         assert!(matches_any_filter(&filters, "63409"));
     }
@@ -166,7 +160,10 @@ mod tests {
         // User types "0x2151762794" (10 chars - beyond u32 range)
         // This should fail u32 parsing and fall back to StringValue filter
         let filters = parse_filter_string("0x2151762794");
-        assert_eq!(filters, vec![Filter::StringValue("0x2151762794".to_string())]);
+        assert_eq!(
+            filters,
+            vec![Filter::StringValue("0x2151762794".to_string())]
+        );
     }
 
     #[test]
@@ -191,7 +188,7 @@ mod tests {
     }
 
     // Real data tests from actual pcap file
-    
+
     #[test]
     fn test_search_real_opcode_f7b0_hex() {
         // Real opcode from pcap: F7B0 (63408 decimal, Ordered_GameEvent)
@@ -244,7 +241,10 @@ mod tests {
     fn test_search_pantaloons_text() {
         // Real item description from pcap line 10
         let filters = parse_filter_string("pantaloons");
-        assert!(matches_any_filter(&filters, "Pantaloons of Piercing Protection"));
+        assert!(matches_any_filter(
+            &filters,
+            "Pantaloons of Piercing Protection"
+        ));
     }
 
     #[test]
@@ -344,7 +344,10 @@ mod tests {
         // Value above u32::MAX (too large)
         let filters = parse_filter_string("0xFFFFFFFFFF");
         // Should fall back to StringValue matching
-        assert_eq!(filters, vec![Filter::StringValue("0xffffffffff".to_string())]);
+        assert_eq!(
+            filters,
+            vec![Filter::StringValue("0xffffffffff".to_string())]
+        );
     }
 
     #[test]
@@ -376,7 +379,7 @@ mod tests {
         // Real item names from pcap
         let filters = parse_filter_string("bordered cloak");
         assert!(matches_any_filter(&filters, "Bordered Cloak"));
-        
+
         let filters2 = parse_filter_string("yoroi");
         assert!(matches_any_filter(&filters2, "Yoroi Greaves of Sprinting"));
     }
@@ -387,7 +390,7 @@ mod tests {
         let filters_f7b0 = parse_filter_string("0xF7B0");
         assert!(matches_any_filter(&filters_f7b0, "F7B0"));
         assert!(!matches_any_filter(&filters_f7b0, "F7B1"));
-        
+
         let filters_f7b1 = parse_filter_string("0xF7B1");
         assert!(matches_any_filter(&filters_f7b1, "F7B1"));
         assert!(!matches_any_filter(&filters_f7b1, "F7B0"));
