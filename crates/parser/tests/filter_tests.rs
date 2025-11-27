@@ -22,13 +22,13 @@ fn json_contains_string(value: &serde_json::Value, search: &str) -> bool {
             } else {
                 false
             }
-        },
+        }
         serde_json::Value::Array(arr) => arr.iter().any(|v| json_contains_string(v, search)),
         serde_json::Value::Object(obj) => {
             // Search in both keys and values
-            obj.keys().any(|k| k.to_lowercase().contains(&search_lower)) ||
-            obj.values().any(|v| json_contains_string(v, search))
-        },
+            obj.keys().any(|k| k.to_lowercase().contains(&search_lower))
+                || obj.values().any(|v| json_contains_string(v, search))
+        }
         _ => false,
     }
 }
@@ -41,7 +41,10 @@ fn filter_messages<'a>(messages: &'a [ParsedMessage], search: &str) -> Vec<&'a P
             // Search in message ID
             let id_matches = m.id.to_string().contains(&search.to_lowercase());
             // Search in message type
-            let type_matches = m.message_type.to_lowercase().contains(&search.to_lowercase());
+            let type_matches = m
+                .message_type
+                .to_lowercase()
+                .contains(&search.to_lowercase());
             // Search in direction
             let direction_matches = m.direction.to_lowercase().contains(&search.to_lowercase());
             // Search in opcode
@@ -160,30 +163,34 @@ fn test_filter_partial_match() {
 
 #[test]
 fn test_filter_by_object_id() {
-let messages = load_test_messages();
+    let messages = load_test_messages();
 
-// Search for ObjectId from message 0
-let filtered = filter_messages(&messages, "2151762794");
+    // Search for ObjectId from message 0
+    let filtered = filter_messages(&messages, "2151762794");
 
-// Should find at least one message
-assert!(
-!filtered.is_empty(),
-    "Filter '2151762794' should find at least one message"
+    // Should find exactly 2 messages (Item_Appraise and Item_SetAppraiseInfo for the same item)
+    assert_eq!(
+        filtered.len(),
+        2,
+        "Filter '2151762794' should find exactly 2 messages"
     );
 
-    // Should find message id 0
+    // Should find message id 0 (Item_Appraise)
     let found_msg_0 = filtered.iter().any(|m| m.id == 0);
     assert!(found_msg_0, "Filter '2151762794' should find message id 0");
 
-    // Verify message 0 contains the ObjectId in its data
-    let msg_0 = messages
-        .iter()
-        .find(|m| m.id == 0)
-        .expect("Message id 0 should exist");
-    assert!(
-        json_contains_string(&msg_0.data, "2151762794"),
-        "Message id 0 should contain ObjectId '2151762794' in its data"
-    );
+    // Should find message id 1 (Item_SetAppraiseInfo response)
+    let found_msg_1 = filtered.iter().any(|m| m.id == 1);
+    assert!(found_msg_1, "Filter '2151762794' should find message id 1");
+
+    // Verify both messages contain the ObjectId in their data
+    for msg in &filtered {
+        assert!(
+            json_contains_string(&msg.data, "2151762794"),
+            "Message id {} should contain ObjectId '2151762794' in its data",
+            msg.id
+        );
+    }
 }
 
 #[test]
@@ -200,8 +207,13 @@ fn test_filter_by_field_name() {
     );
 
     // Verify at least one result has ObjectId in its data
-    let has_objectid_field = filtered.iter().any(|m| json_contains_string(&m.data, "objectid"));
-    assert!(has_objectid_field, "Filter 'objectid' should find messages containing 'objectid' field");
+    let has_objectid_field = filtered
+        .iter()
+        .any(|m| json_contains_string(&m.data, "objectid"));
+    assert!(
+        has_objectid_field,
+        "Filter 'objectid' should find messages containing 'objectid' field"
+    );
 }
 
 #[test]
