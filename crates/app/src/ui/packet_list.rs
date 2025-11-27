@@ -127,32 +127,89 @@ pub fn desktop_marked_cell(
     ui.selectable_label(is_selected, text)
 }
 
-/// Column definition for mobile table
-#[derive(Clone)]
-struct MobileColumn {
-    header: &'static str,
-    width_pct: f32,
-    right_align: bool,
+/// Draw a sort indicator arrow for a header
+fn draw_sort_arrow(ui: &mut egui::Ui, ascending: bool) {
+    let size = 8.0;
+    let (rect, _) = ui.allocate_exact_size(egui::vec2(size, size), egui::Sense::hover());
+    let painter = ui.painter();
+    let center = rect.center();
+    let color = ui.visuals().text_color();
+
+    if ascending {
+        // Draw up arrow
+        let points = [
+            center + egui::vec2(-3.0, 1.5),
+            center + egui::vec2(0.0, -1.5),
+            center + egui::vec2(3.0, 1.5),
+        ];
+        painter.add(egui::Shape::convex_polygon(
+            points.into(),
+            color,
+            egui::Stroke::NONE,
+        ));
+    } else {
+        // Draw down arrow
+        let points = [
+            center + egui::vec2(-3.0, -1.5),
+            center + egui::vec2(0.0, 1.5),
+            center + egui::vec2(3.0, -1.5),
+        ];
+        painter.add(egui::Shape::convex_polygon(
+            points.into(),
+            color,
+            egui::Stroke::NONE,
+        ));
+    }
 }
 
-/// Mobile header row
-fn mobile_header(ui: &mut egui::Ui, columns: &[MobileColumn], available_width: f32) {
-    for col in columns {
-        let width = available_width * col.width_pct;
-        ui.allocate_ui(egui::vec2(width, ui.spacing().interact_size.y), |ui| {
-            ui.with_layout(
-                if col.right_align {
-                    egui::Layout::right_to_left(egui::Align::Center)
-                } else {
-                    egui::Layout::left_to_right(egui::Align::Center)
-                },
-                |ui| {
-                    ui.strong(col.header);
-                },
-            );
-        });
-    }
-    ui.end_row();
+/// Clickable header cell for desktop
+fn desktop_header_cell(
+    ui: &mut egui::Ui,
+    text: &str,
+    field: SortField,
+    current_sort: SortField,
+    sort_ascending: bool,
+) -> egui::Response {
+    let is_sorted = field == current_sort;
+    ui.horizontal(|ui| {
+        let response = ui.selectable_label(false, egui::RichText::new(text).strong());
+        if is_sorted {
+            draw_sort_arrow(ui, sort_ascending);
+        }
+        response
+    })
+    .inner
+}
+
+/// Clickable header cell for mobile
+fn mobile_header_cell(
+    ui: &mut egui::Ui,
+    width: f32,
+    right_align: bool,
+    text: &str,
+    field: SortField,
+    current_sort: SortField,
+    sort_ascending: bool,
+) -> egui::Response {
+    let layout = if right_align {
+        egui::Layout::right_to_left(egui::Align::Center)
+    } else {
+        egui::Layout::left_to_right(egui::Align::Center)
+    };
+    let is_sorted = field == current_sort;
+
+    ui.allocate_ui_with_layout(
+        egui::vec2(width, ui.spacing().interact_size.y),
+        layout,
+        |ui| {
+            let response = ui.selectable_label(false, egui::RichText::new(text).strong());
+            if is_sorted {
+                draw_sort_arrow(ui, sort_ascending);
+            }
+            response
+        },
+    )
+    .inner
 }
 
 /// Show messages list
@@ -258,6 +315,7 @@ pub fn show_messages_list(app: &mut PcapViewerApp, ui: &mut egui::Ui, is_mobile:
             SortField::Id => a.1.cmp(&b.1),
             SortField::Type => a.2.cmp(&b.2),
             SortField::Direction => a.3.cmp(&b.3),
+            SortField::OpCode => a.4.cmp(&b.4),
         };
         if sort_ascending {
             cmp
@@ -276,34 +334,74 @@ pub fn show_messages_list(app: &mut PcapViewerApp, ui: &mut egui::Ui, is_mobile:
 
         if is_mobile {
             ui.set_min_width(available_width);
-            let columns = [
-                MobileColumn {
-                    header: "ID",
-                    width_pct: 0.12,
-                    right_align: false,
-                },
-                MobileColumn {
-                    header: "Type",
-                    width_pct: 0.76,
-                    right_align: false,
-                },
-                MobileColumn {
-                    header: "Dir",
-                    width_pct: 0.12,
-                    right_align: true,
-                },
+            // Column widths as percentages: ID (12%), Type (76%), Dir (12%)
+            let widths = [
+                available_width * 0.12,
+                available_width * 0.76,
+                available_width * 0.12,
             ];
-            let widths: Vec<f32> = columns
-                .iter()
-                .map(|c| available_width * c.width_pct)
-                .collect();
 
             egui::Grid::new("messages_grid")
                 .num_columns(3)
                 .striped(true)
                 .spacing(egui::vec2(4.0, 4.0))
                 .show(ui, |ui| {
-                    mobile_header(ui, &columns, available_width);
+                    // Clickable headers
+                    if mobile_header_cell(
+                        ui,
+                        widths[0],
+                        false,
+                        "ID",
+                        SortField::Id,
+                        sort_field,
+                        sort_ascending,
+                    )
+                    .clicked()
+                    {
+                        if sort_field == SortField::Id {
+                            app.sort_ascending = !app.sort_ascending;
+                        } else {
+                            app.sort_field = SortField::Id;
+                            app.sort_ascending = true;
+                        }
+                    }
+                    if mobile_header_cell(
+                        ui,
+                        widths[1],
+                        false,
+                        "Type",
+                        SortField::Type,
+                        sort_field,
+                        sort_ascending,
+                    )
+                    .clicked()
+                    {
+                        if sort_field == SortField::Type {
+                            app.sort_ascending = !app.sort_ascending;
+                        } else {
+                            app.sort_field = SortField::Type;
+                            app.sort_ascending = true;
+                        }
+                    }
+                    if mobile_header_cell(
+                        ui,
+                        widths[2],
+                        true,
+                        "Dir",
+                        SortField::Direction,
+                        sort_field,
+                        sort_ascending,
+                    )
+                    .clicked()
+                    {
+                        if sort_field == SortField::Direction {
+                            app.sort_ascending = !app.sort_ascending;
+                        } else {
+                            app.sort_field = SortField::Direction;
+                            app.sort_ascending = true;
+                        }
+                    }
+                    ui.end_row();
 
                     for (original_idx, id, msg_type, direction, _opcode) in &filtered {
                         let is_selected = app.selected_message == Some(*original_idx);
@@ -358,10 +456,59 @@ pub fn show_messages_list(app: &mut PcapViewerApp, ui: &mut egui::Ui, is_mobile:
                 .striped(true)
                 .min_col_width(50.0)
                 .show(ui, |ui| {
-                    ui.strong("ID");
-                    ui.strong("Type");
-                    ui.strong("Dir");
-                    ui.strong("OpCode");
+                    // Clickable headers
+                    if desktop_header_cell(ui, "ID", SortField::Id, sort_field, sort_ascending)
+                        .clicked()
+                    {
+                        if sort_field == SortField::Id {
+                            app.sort_ascending = !app.sort_ascending;
+                        } else {
+                            app.sort_field = SortField::Id;
+                            app.sort_ascending = true;
+                        }
+                    }
+                    if desktop_header_cell(ui, "Type", SortField::Type, sort_field, sort_ascending)
+                        .clicked()
+                    {
+                        if sort_field == SortField::Type {
+                            app.sort_ascending = !app.sort_ascending;
+                        } else {
+                            app.sort_field = SortField::Type;
+                            app.sort_ascending = true;
+                        }
+                    }
+                    if desktop_header_cell(
+                        ui,
+                        "Dir",
+                        SortField::Direction,
+                        sort_field,
+                        sort_ascending,
+                    )
+                    .clicked()
+                    {
+                        if sort_field == SortField::Direction {
+                            app.sort_ascending = !app.sort_ascending;
+                        } else {
+                            app.sort_field = SortField::Direction;
+                            app.sort_ascending = true;
+                        }
+                    }
+                    if desktop_header_cell(
+                        ui,
+                        "OpCode",
+                        SortField::OpCode,
+                        sort_field,
+                        sort_ascending,
+                    )
+                    .clicked()
+                    {
+                        if sort_field == SortField::OpCode {
+                            app.sort_ascending = !app.sort_ascending;
+                        } else {
+                            app.sort_field = SortField::OpCode;
+                            app.sort_ascending = true;
+                        }
+                    }
                     ui.end_row();
 
                     for (original_idx, id, msg_type, direction, opcode) in &filtered {
@@ -441,6 +588,8 @@ pub fn show_packets_list(app: &mut PcapViewerApp, ui: &mut egui::Ui, is_mobile: 
             SortField::Id => a.1.cmp(&b.1),
             SortField::Type => a.2.cmp(&b.2),
             SortField::Direction => a.3.cmp(&b.3),
+            // Packets don't have OpCode, fall back to Id
+            SortField::OpCode => a.1.cmp(&b.1),
         };
         if sort_ascending {
             cmp
@@ -459,44 +608,95 @@ pub fn show_packets_list(app: &mut PcapViewerApp, ui: &mut egui::Ui, is_mobile: 
 
         if is_mobile {
             ui.set_min_width(available_width);
-            let columns = [
-                MobileColumn {
-                    header: "ID",
-                    width_pct: 0.15,
-                    right_align: false,
-                },
-                MobileColumn {
-                    header: "Seq",
-                    width_pct: 0.20,
-                    right_align: false,
-                },
-                MobileColumn {
-                    header: "Dir",
-                    width_pct: 0.15,
-                    right_align: true,
-                },
-                MobileColumn {
-                    header: "Flags",
-                    width_pct: 0.25,
-                    right_align: false,
-                },
-                MobileColumn {
-                    header: "Size",
-                    width_pct: 0.25,
-                    right_align: false,
-                },
+            // Column widths as percentages: ID (15%), Seq (20%), Dir (15%), Flags (25%), Size (25%)
+            let widths = [
+                available_width * 0.15,
+                available_width * 0.20,
+                available_width * 0.15,
+                available_width * 0.25,
+                available_width * 0.25,
             ];
-            let widths: Vec<f32> = columns
-                .iter()
-                .map(|c| available_width * c.width_pct)
-                .collect();
 
             egui::Grid::new("packets_grid")
                 .num_columns(5)
                 .striped(true)
                 .spacing(egui::vec2(4.0, 4.0))
                 .show(ui, |ui| {
-                    mobile_header(ui, &columns, available_width);
+                    // Clickable headers
+                    if mobile_header_cell(
+                        ui,
+                        widths[0],
+                        false,
+                        "ID",
+                        SortField::Id,
+                        sort_field,
+                        sort_ascending,
+                    )
+                    .clicked()
+                    {
+                        if sort_field == SortField::Id {
+                            app.sort_ascending = !app.sort_ascending;
+                        } else {
+                            app.sort_field = SortField::Id;
+                            app.sort_ascending = true;
+                        }
+                    }
+                    if mobile_header_cell(
+                        ui,
+                        widths[1],
+                        false,
+                        "Seq",
+                        SortField::Type,
+                        sort_field,
+                        sort_ascending,
+                    )
+                    .clicked()
+                    {
+                        if sort_field == SortField::Type {
+                            app.sort_ascending = !app.sort_ascending;
+                        } else {
+                            app.sort_field = SortField::Type;
+                            app.sort_ascending = true;
+                        }
+                    }
+                    if mobile_header_cell(
+                        ui,
+                        widths[2],
+                        true,
+                        "Dir",
+                        SortField::Direction,
+                        sort_field,
+                        sort_ascending,
+                    )
+                    .clicked()
+                    {
+                        if sort_field == SortField::Direction {
+                            app.sort_ascending = !app.sort_ascending;
+                        } else {
+                            app.sort_field = SortField::Direction;
+                            app.sort_ascending = true;
+                        }
+                    }
+                    // Flags and Size are not sortable
+                    mobile_header_cell(
+                        ui,
+                        widths[3],
+                        false,
+                        "Flags",
+                        SortField::Id,
+                        SortField::Id,
+                        true,
+                    );
+                    mobile_header_cell(
+                        ui,
+                        widths[4],
+                        false,
+                        "Size",
+                        SortField::Id,
+                        SortField::Id,
+                        true,
+                    );
+                    ui.end_row();
 
                     for (original_idx, id, seq, direction, flags, size) in &filtered {
                         let is_selected = app.selected_packet == Some(*original_idx);
@@ -585,9 +785,50 @@ pub fn show_packets_list(app: &mut PcapViewerApp, ui: &mut egui::Ui, is_mobile: 
                 .striped(true)
                 .min_col_width(50.0)
                 .show(ui, |ui| {
-                    ui.strong("ID");
-                    ui.strong("Sequence");
-                    ui.strong("Direction");
+                    // Clickable headers
+                    if desktop_header_cell(ui, "ID", SortField::Id, sort_field, sort_ascending)
+                        .clicked()
+                    {
+                        if sort_field == SortField::Id {
+                            app.sort_ascending = !app.sort_ascending;
+                        } else {
+                            app.sort_field = SortField::Id;
+                            app.sort_ascending = true;
+                        }
+                    }
+                    if desktop_header_cell(
+                        ui,
+                        "Sequence",
+                        SortField::Type,
+                        sort_field,
+                        sort_ascending,
+                    )
+                    .clicked()
+                    {
+                        if sort_field == SortField::Type {
+                            app.sort_ascending = !app.sort_ascending;
+                        } else {
+                            app.sort_field = SortField::Type;
+                            app.sort_ascending = true;
+                        }
+                    }
+                    if desktop_header_cell(
+                        ui,
+                        "Direction",
+                        SortField::Direction,
+                        sort_field,
+                        sort_ascending,
+                    )
+                    .clicked()
+                    {
+                        if sort_field == SortField::Direction {
+                            app.sort_ascending = !app.sort_ascending;
+                        } else {
+                            app.sort_field = SortField::Direction;
+                            app.sort_ascending = true;
+                        }
+                    }
+                    // Flags, Size, and Data Size are not sortable
                     ui.strong("Flags");
                     ui.strong("Size");
                     ui.strong("Data Size");

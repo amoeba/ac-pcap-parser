@@ -62,6 +62,7 @@ pub enum SortField {
     Id,
     Type,
     Direction,
+    OpCode,
 }
 
 /// Fragment info as stored in packets
