@@ -198,13 +198,17 @@ fn mobile_header_cell(
     };
     let is_sorted = field == current_sort;
 
-    ui.allocate_ui_with_layout(egui::vec2(width, ui.spacing().interact_size.y), layout, |ui| {
-        let response = ui.selectable_label(false, egui::RichText::new(text).strong());
-        if is_sorted {
-            draw_sort_arrow(ui, sort_ascending);
-        }
-        response
-    })
+    ui.allocate_ui_with_layout(
+        egui::vec2(width, ui.spacing().interact_size.y),
+        layout,
+        |ui| {
+            let response = ui.selectable_label(false, egui::RichText::new(text).strong());
+            if is_sorted {
+                draw_sort_arrow(ui, sort_ascending);
+            }
+            response
+        },
+    )
     .inner
 }
 
@@ -657,8 +661,24 @@ pub fn show_packets_list(app: &mut PcapViewerApp, ui: &mut egui::Ui, is_mobile: 
                         }
                     }
                     // Flags and Size are not sortable
-                    mobile_header_cell(ui, widths[3], false, "Flags", SortField::Id, SortField::Id, true);
-                    mobile_header_cell(ui, widths[4], false, "Size", SortField::Id, SortField::Id, true);
+                    mobile_header_cell(
+                        ui,
+                        widths[3],
+                        false,
+                        "Flags",
+                        SortField::Id,
+                        SortField::Id,
+                        true,
+                    );
+                    mobile_header_cell(
+                        ui,
+                        widths[4],
+                        false,
+                        "Size",
+                        SortField::Id,
+                        SortField::Id,
+                        true,
+                    );
                     ui.end_row();
 
                     for (original_idx, id, seq, direction, flags, size) in &filtered {
@@ -759,8 +779,14 @@ pub fn show_packets_list(app: &mut PcapViewerApp, ui: &mut egui::Ui, is_mobile: 
                             app.sort_ascending = true;
                         }
                     }
-                    if desktop_header_cell(ui, "Sequence", SortField::Type, sort_field, sort_ascending)
-                        .clicked()
+                    if desktop_header_cell(
+                        ui,
+                        "Sequence",
+                        SortField::Type,
+                        sort_field,
+                        sort_ascending,
+                    )
+                    .clicked()
                     {
                         if sort_field == SortField::Type {
                             app.sort_ascending = !app.sort_ascending;

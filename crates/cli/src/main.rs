@@ -152,6 +152,7 @@ fn print_summary(packets: &[ParsedPacket], messages: &[ParsedMessage]) {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn output_messages(
     messages: &[ParsedMessage],
     filter_type: Option<&str>,
