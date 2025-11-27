@@ -9,5 +9,5 @@ fn main() -> eframe::Result<()> {
     env_logger::init();
 
     // Call the library's main function
-    web::main()
+    app::main()
 }
