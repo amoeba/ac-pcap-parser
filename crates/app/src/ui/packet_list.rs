@@ -315,6 +315,7 @@ pub fn show_messages_list(app: &mut PcapViewerApp, ui: &mut egui::Ui, is_mobile:
             SortField::Id => a.1.cmp(&b.1),
             SortField::Type => a.2.cmp(&b.2),
             SortField::Direction => a.3.cmp(&b.3),
+            SortField::OpCode => a.4.cmp(&b.4),
         };
         if sort_ascending {
             cmp
@@ -492,8 +493,22 @@ pub fn show_messages_list(app: &mut PcapViewerApp, ui: &mut egui::Ui, is_mobile:
                             app.sort_ascending = true;
                         }
                     }
-                    // OpCode is not sortable, just display as strong text
-                    ui.strong("OpCode");
+                    if desktop_header_cell(
+                        ui,
+                        "OpCode",
+                        SortField::OpCode,
+                        sort_field,
+                        sort_ascending,
+                    )
+                    .clicked()
+                    {
+                        if sort_field == SortField::OpCode {
+                            app.sort_ascending = !app.sort_ascending;
+                        } else {
+                            app.sort_field = SortField::OpCode;
+                            app.sort_ascending = true;
+                        }
+                    }
                     ui.end_row();
 
                     for (original_idx, id, msg_type, direction, opcode) in &filtered {
@@ -573,6 +588,8 @@ pub fn show_packets_list(app: &mut PcapViewerApp, ui: &mut egui::Ui, is_mobile: 
             SortField::Id => a.1.cmp(&b.1),
             SortField::Type => a.2.cmp(&b.2),
             SortField::Direction => a.3.cmp(&b.3),
+            // Packets don't have OpCode, fall back to Id
+            SortField::OpCode => a.1.cmp(&b.1),
         };
         if sort_ascending {
             cmp
