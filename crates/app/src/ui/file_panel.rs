@@ -184,7 +184,7 @@ async fn fetch_discord_pcap(channel_id: &str, message_id: &str) -> Result<Vec<u8
     use wasm_bindgen_futures::JsFuture;
     use web_sys::{Request, RequestInit, Response};
 
-    let url = format!("/api/discord?channel={}&msg={}", channel_id, message_id);
+    let url = format!("/api/discord/channels/{}/messages/{}/attachments", channel_id, message_id);
 
     let mut opts = RequestInit::new();
     opts.set_method("GET");

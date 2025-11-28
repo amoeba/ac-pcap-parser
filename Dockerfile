@@ -1,7 +1,7 @@
 # Multi-stage build for Discord bot with web server and WASM UI
 
 # Stage 1: Build the WASM UI
-FROM rust:latest as wasm-builder
+FROM rust:latest AS wasm-builder
 WORKDIR /app
 COPY . .
 RUN rustup target add wasm32-unknown-unknown
@@ -9,7 +9,7 @@ RUN cargo install wasm-pack
 RUN wasm-pack build crates/web --target web --release
 
 # Stage 2: Build the bot (includes web server)
-FROM rust:latest as bot-builder
+FROM rust:latest AS bot-builder
 WORKDIR /app
 COPY . .
 RUN cargo build --release -p bot
@@ -27,4 +27,6 @@ COPY --from=wasm-builder /app/crates/web/pkg /app/dist
 
 EXPOSE 3000
 ENV RUST_LOG=info
+# Optional: Set WEB_URL for bot replies (defaults to http://localhost:3000)
+# ENV WEB_URL=https://your-domain.com
 CMD ["./bot"]

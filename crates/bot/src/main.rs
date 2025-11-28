@@ -1,11 +1,14 @@
 use axum::{
-    extract::Query,
-    http::StatusCode,
+    extract::Path,
+    http::{Request, StatusCode},
+    middleware::{self, Next},
+    response::Response,
     routing::get,
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use tower_http::services::ServeDir;
+use tower_http::trace::TraceLayer;
 use tracing::info;
 
 mod discord;
@@ -21,19 +24,28 @@ async fn main() {
         )
         .init();
 
-    // Get Discord bot token
-    let discord_token = std::env::var("DISCORD_OAUTH_TOKEN")
-        .expect("DISCORD_OAUTH_TOKEN environment variable is required");
+    // Get Discord bot token (optional)
+    if let Ok(discord_token) = std::env::var("DISCORD_OAUTH_TOKEN") {
+        info!("Discord bot token found - starting bot");
 
-    info!("Initializing with Discord bot token");
+        // Get web URL from environment or use default
+        let web_url = std::env::var("WEB_URL")
+            .unwrap_or_else(|_| "http://localhost:3000".to_string());
 
-    // Spawn bot in background task
-    let bot_token = discord_token.clone();
-    tokio::spawn(async move {
-        if let Err(e) = bot::start_bot(bot_token).await {
-            tracing::error!("Bot error: {}", e);
-        }
-    });
+        info!("Web UI URL: {}", web_url);
+
+        // Spawn bot in background task
+        let bot_token = discord_token.clone();
+        tokio::spawn(async move {
+            if let Err(e) = bot::start_bot(bot_token, web_url).await {
+                tracing::error!("Bot error: {}", e);
+            }
+        });
+    } else {
+        println!("DISCORD_OAUTH_TOKEN not set - Discord bot disabled");
+        println!("Web server will still run, but Discord integration will not be available");
+        info!("Discord bot disabled (no token provided)");
+    }
 
     // Start web server
     let app = create_router();
@@ -45,9 +57,50 @@ async fn main() {
 
     info!("Web server running on {}", addr);
 
+    // Setup graceful shutdown
     axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
         .await
         .expect("Server failed");
+
+    info!("Server shutdown complete");
+}
+
+async fn shutdown_signal() {
+    use tokio::signal;
+
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+            println!("\nReceived Ctrl+C, shutting down gracefully...");
+        },
+        _ = terminate => {
+            println!("\nReceived termination signal, shutting down gracefully...");
+        },
+    }
+}
+
+async fn log_requests(req: Request<axum::body::Body>, next: Next) -> Response {
+    let method = req.method().clone();
+    let uri = req.uri().clone();
+    println!(">>> HTTP {} {}", method, uri);
+    next.run(req).await
 }
 
 fn create_router() -> Router {
@@ -55,21 +108,22 @@ fn create_router() -> Router {
 
     Router::new()
         .route("/api/health", get(health))
-        .route("/api/discord", get(discord_pull))
+        .route("/api/discord/channels/{channel_id}/messages/{message_id}/attachments", get(discord_pull))
         .fallback_service(ServeDir::new(&dist_path))
+        .layer(middleware::from_fn(log_requests))
+        .layer(TraceLayer::new_for_http())
 }
 
 /// Health check endpoint
 async fn health() -> &'static str {
+    info!("Health check endpoint called");
     "OK"
 }
 
 #[derive(Deserialize)]
-struct DiscordQuery {
-    #[serde(default)]
-    channel: String,
-    #[serde(default)]
-    msg: String,
+struct DiscordParams {
+    channel_id: String,
+    message_id: String,
 }
 
 #[derive(Serialize)]
@@ -79,19 +133,10 @@ struct DiscordError {
 
 /// Fetch PCAP from Discord message attachment
 async fn discord_pull(
-    Query(params): Query<DiscordQuery>,
+    Path(params): Path<DiscordParams>,
 ) -> Result<Vec<u8>, (StatusCode, Json<DiscordError>)> {
-    info!("Discord pull request: channel={}, msg={}", params.channel, params.msg);
-    
-    // Validate channel and message IDs
-    if params.channel.is_empty() || params.msg.is_empty() {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(DiscordError {
-                error: "Missing channel or msg parameters".to_string(),
-            }),
-        ));
-    }
+    println!("==> Discord pull request: channel={}, msg={}", params.channel_id, params.message_id);
+    info!("Discord pull request: channel={}, msg={}", params.channel_id, params.message_id);
 
     // Check if token is available
     let token = std::env::var("DISCORD_OAUTH_TOKEN").map_err(|_| {
@@ -104,7 +149,7 @@ async fn discord_pull(
     })?;
 
     // Fetch message from Discord API
-    let message = discord::fetch_message(&params.channel, &params.msg, &token)
+    let message = discord::fetch_message(&params.channel_id, &params.message_id, &token)
         .await
         .map_err(|(status, error)| {
             (

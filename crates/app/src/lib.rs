@@ -54,6 +54,9 @@ pub struct PcapViewerApp {
     // Initial URL to load from query params (consumed on first update)
     pub initial_url: Option<String>,
 
+    // Initial Discord load flag (consumed on first update)
+    pub initial_discord_load: bool,
+
     // Base pixels_per_point for scaling calculations (set on first frame)
     pub base_pixels_per_point: Option<f32>,
 
@@ -102,6 +105,7 @@ impl Default for PcapViewerApp {
             fetched_data: Arc::new(Mutex::new(None)),
             fetched_error: Arc::new(Mutex::new(None)),
             initial_url: None,
+            initial_discord_load: false,
             base_pixels_per_point: None,
             show_url_dialog: false,
             url_input: String::new(),
@@ -310,6 +314,21 @@ impl eframe::App for PcapViewerApp {
         // Handle initial URL from query params (auto-load on first frame)
         if let Some(url) = self.initial_url.take() {
             ui::file_panel::load_from_url(self, url, ctx);
+        }
+
+        // Handle initial Discord load from query params (auto-load on first frame)
+        if self.initial_discord_load {
+            log::info!("initial_discord_load triggered!");
+            self.initial_discord_load = false;
+            let channel = self.discord_channel_id.clone();
+            let msg = self.discord_message_id.clone();
+            log::info!("Discord IDs: channel={}, msg={}", channel, msg);
+            if !channel.is_empty() && !msg.is_empty() {
+                log::info!("Calling load_from_discord...");
+                ui::file_panel::load_from_discord(self, channel, msg, ctx);
+            } else {
+                log::warn!("Channel or message ID is empty!");
+            }
         }
 
         // Preview dropped files
@@ -952,52 +971,6 @@ impl eframe::App for PcapViewerApp {
 
                     // Display error if URL load failed
                     if let Some(ref error) = self.url_load_error {
-                        ui.add_space(5.0);
-                        ui.colored_label(egui::Color32::RED, error);
-                    }
-
-                    // Add Discord loading option
-                    ui.add_space(10.0);
-                    ui.label("or");
-                    ui.add_space(10.0);
-
-                    ui.label("Load from Discord");
-                    ui.add_space(5.0);
-
-                    ui.horizontal(|ui| {
-                        let input_width = if is_mobile { 150.0 } else { 180.0 };
-                        let button_width = 50.0;
-                        let spacing = ui.spacing().item_spacing.x;
-                        let total_content_width = (input_width * 2.0) + spacing + button_width + spacing;
-                        let available_width = ui.available_width();
-
-                        // Add left padding to center the content
-                        if total_content_width < available_width {
-                            let left_padding = (available_width - total_content_width) / 2.0;
-                            ui.add_space(left_padding);
-                        }
-
-                        ui.label("Channel:");
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.discord_channel_id)
-                                .hint_text("1234567890")
-                                .desired_width(input_width),
-                        );
-                        ui.label("Message:");
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.discord_message_id)
-                                .hint_text("0987654321")
-                                .desired_width(input_width),
-                        );
-                        if ui.button("Load").clicked() && !self.discord_channel_id.is_empty() && !self.discord_message_id.is_empty() {
-                            let channel = self.discord_channel_id.clone();
-                            let message = self.discord_message_id.clone();
-                            ui::file_panel::load_from_discord(self, channel, message, ctx);
-                        }
-                    });
-
-                    // Display error if Discord load failed
-                    if let Some(ref error) = self.discord_load_error {
                         ui.add_space(5.0);
                         ui.colored_label(egui::Color32::RED, error);
                     }
