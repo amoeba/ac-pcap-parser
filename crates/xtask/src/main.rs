@@ -142,9 +142,7 @@ fn bot(serve: bool) -> Result<()> {
     let updated_js = js_content.replace("web_bg.wasm", &wasm_filename);
     fs::write(format!("dist/{js_filename}"), updated_js)
         .context("Failed to write updated JS file")?;
-    println!(
-        "  ✓ Copied and updated web.js -> {js_filename} (references {wasm_filename})"
-    );
+    println!("  ✓ Copied and updated web.js -> {js_filename} (references {wasm_filename})");
 
     fs::copy(wasm_path, format!("dist/{wasm_filename}")).context("Failed to copy WASM file")?;
     println!("  ✓ Copied web_bg.wasm -> {wasm_filename}");

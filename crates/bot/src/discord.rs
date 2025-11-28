@@ -54,9 +54,7 @@ pub async fn fetch_message(
         ));
     }
 
-    let url = format!(
-        "{DISCORD_API_BASE}/channels/{channel_id}/messages/{message_id}"
-    );
+    let url = format!("{DISCORD_API_BASE}/channels/{channel_id}/messages/{message_id}");
 
     debug!("Fetching Discord message from: {}", url);
 
