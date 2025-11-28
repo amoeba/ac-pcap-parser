@@ -108,14 +108,17 @@ jobs:
             cargo install wasm-bindgen-cli --version "$WASM_BINDGEN_VERSION" --force
           fi
 
-      - name: Build web (xtask)
-        run: cargo xtask web
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+
+      - name: Build WASM and bot (xtask)
+        run: cargo xtask bot
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wasm-pkg
-          path: crates/web/pkg/
+          name: dist
+          path: dist/
           retention-days: 1
 
   # ====================
@@ -137,8 +140,8 @@ jobs:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: wasm-pkg
-          path: pkg/
+          name: dist
+          path: dist/
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

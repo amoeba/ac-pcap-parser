@@ -31,9 +31,9 @@ fn try_main() -> Result<()> {
 fn bot(serve: bool) -> Result<()> {
     println!("🔨 Building WASM UI...");
 
-    // Build WASM with wasm-pack
+    // Build WASM with wasm-pack using release-wasm profile for maximum size optimization
     let status = Command::new("wasm-pack")
-        .args(&["build", "crates/web", "--target", "web", "--release"])
+        .args(&["build", "crates/web", "--target", "web", "--", "--profile", "release-wasm"])
         .status()
         .context("Failed to run wasm-pack")?;
 
