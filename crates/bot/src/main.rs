@@ -24,6 +24,11 @@ async fn main() {
         )
         .init();
 
+    // Print version info
+    let git_sha = option_env!("GIT_SHA").unwrap_or("unknown");
+    println!("Starting bot (version: {})", git_sha);
+    info!("Bot version: {}", git_sha);
+
     // Get Discord bot token (optional)
     if let Ok(discord_token) = std::env::var("DISCORD_OAUTH_TOKEN") {
         info!("Discord bot token found - starting bot");
