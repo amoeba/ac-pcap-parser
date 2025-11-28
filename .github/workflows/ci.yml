@@ -9,6 +9,10 @@ on:
     types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
   REGISTRY: ghcr.io
@@ -62,7 +66,7 @@ jobs:
   build-image:
     name: Build Docker Image
     runs-on: ubuntu-latest
-    # No dependencies - builds everything in Docker
+    needs: ci
     if: github.event.action != 'closed'
     permissions:
       contents: read
