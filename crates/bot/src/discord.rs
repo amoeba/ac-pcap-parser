@@ -7,16 +7,20 @@ use tracing::{debug, error, warn};
 #[derive(Debug, Deserialize)]
 pub struct DiscordMessage {
     pub id: String,
+    #[allow(dead_code)]
     pub channel_id: String,
     pub attachments: Vec<DiscordAttachment>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct DiscordAttachment {
+    #[allow(dead_code)]
     pub id: String,
     pub filename: String,
     pub url: String,
+    #[allow(dead_code)]
     pub content_type: Option<String>,
+    #[allow(dead_code)]
     pub size: Option<u32>,
 }
 
