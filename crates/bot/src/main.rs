@@ -50,8 +50,10 @@ async fn main() {
     // Start web server
     let app = create_router();
 
-    let addr = "0.0.0.0:3000";
-    let listener = tokio::net::TcpListener::bind(addr)
+    // Use PORT env var if set (for Dokku/Heroku), otherwise default to 3000
+    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
+    let addr = format!("0.0.0.0:{port}");
+    let listener = tokio::net::TcpListener::bind(&addr)
         .await
         .expect("Failed to bind listener");
 
