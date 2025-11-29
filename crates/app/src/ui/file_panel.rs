@@ -4,6 +4,7 @@ use crate::{PcapViewerApp, Tab};
 use eframe::egui;
 use lib::PacketParser;
 
+#[allow(dead_code)]
 static BOT_BASE_URL: &str = env!("BOT_BASE_URL");
 
 /// Parse PCAP data and update the app state
