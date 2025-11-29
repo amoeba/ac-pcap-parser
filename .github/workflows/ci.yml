@@ -157,21 +157,6 @@ jobs:
           ssh -i ~/.ssh/deploy_key dokku@${{ secrets.DOKKU_HOST }} \
             git:from-image $APP_NAME "$IMAGE"
 
-          # Wait a moment for the app to be created if it's new
-          sleep 5
-
-          # Configure health checks
-          echo "Configuring health checks..."
-          ssh -i ~/.ssh/deploy_key dokku@${{ secrets.DOKKU_HOST }} \
-            checks:enable $APP_NAME
-
-          # Set health check endpoint (checks /health)
-          # Timeout: 60 seconds, Attempts: 3
-          ssh -i ~/.ssh/deploy_key dokku@${{ secrets.DOKKU_HOST }} \
-            config:set --no-restart $APP_NAME \
-              DOKKU_CHECKS_WAIT=60 \
-              DOKKU_CHECKS_ATTEMPTS=3
-
   deploy-preview:
     name: Deploy Preview
     runs-on: ubuntu-latest
@@ -200,7 +185,7 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.DOKKU_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Create or update preview app
+      - name: Deploy preview
         run: |
           APP_NAME="${{ steps.app-name.outputs.app_name }}"
           IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.image-tag.outputs.tag }}"
@@ -208,28 +193,7 @@ jobs:
           echo "Deploying $IMAGE to $APP_NAME"
 
           ssh -i ~/.ssh/deploy_key dokku@${{ secrets.DOKKU_HOST }} \
-            apps:exists "$APP_NAME" 2>/dev/null || \
-          ssh -i ~/.ssh/deploy_key dokku@${{ secrets.DOKKU_HOST }} \
-            apps:create "$APP_NAME"
-
-          ssh -i ~/.ssh/deploy_key dokku@${{ secrets.DOKKU_HOST }} \
             git:from-image "$APP_NAME" "$IMAGE"
-
-          # Wait a moment for the app to be created if it's new
-          sleep 5
-
-          # Configure health checks for preview apps too
-          echo "Configuring health checks for $APP_NAME..."
-          ssh -i ~/.ssh/deploy_key dokku@${{ secrets.DOKKU_HOST }} \
-            checks:enable $APP_NAME
-
-          ssh -i ~/.ssh/deploy_key dokku@${{ secrets.DOKKU_HOST }} \
-            config:set --no-restart $APP_NAME \
-              DOKKU_CHECKS_WAIT=60 \
-              DOKKU_CHECKS_ATTEMPTS=3
-
-          ssh -i ~/.ssh/deploy_key dokku@${{ secrets.DOKKU_HOST }} \
-            letsencrypt:enable "$APP_NAME" 2>/dev/null || true
 
       - name: Get preview URL
         id: preview-url
