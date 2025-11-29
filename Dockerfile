@@ -38,6 +38,10 @@ COPY --from=cacher /app/Cargo.lock Cargo.lock
 COPY . .
 
 RUN rustup target add wasm32-unknown-unknown
+
+ARG BOT_BASE_URL=https://bot.treestats.net
+ENV BOT_BASE_URL=${BOT_BASE_URL}
+
 RUN --mount=type=cache,target=$SCCACHE_DIR,sharing=locked \
     --mount=type=cache,target=$CARGO_HOME/registry,sharing=locked \
     --mount=type=cache,target=$CARGO_HOME/git,sharing=locked \

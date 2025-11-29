@@ -1,4 +1,4 @@
-use std::process::Command;
+use std::{env, process::Command};
 
 fn main() {
     // Get git SHA at build time
@@ -11,5 +11,11 @@ fn main() {
         .unwrap_or_else(|| "unknown".to_string());
 
     println!("cargo:rustc-env=GIT_SHA={git_sha}");
+
+    // BOT_BASE_URL
+    let base_url =
+        env::var("BOT_BASE_URL").unwrap_or_else(|_| "https://bot.treestats.net".to_string());
+    println!("cargo:rustc-env=BOT_BASE_URL={base_url}");
+
     println!("cargo:rerun-if-changed=.git/HEAD");
 }

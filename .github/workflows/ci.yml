@@ -112,6 +112,15 @@ jobs:
             type=sha,prefix=
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Determine BOT_BASE_URL
+        id: bot_base_url
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            echo "BOT_BASE_URL=https://bot-preview.treestats.net" >> $GITHUB_ENV
+          else
+            echo "BOT_BASE_URL=https://bot.treestats.net" >> $GITHUB_ENV
+          fi
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
@@ -127,6 +136,7 @@ jobs:
           # Enable BuildKit features (required for cache mounts)
           build-args: |
             BUILDKIT_INLINE_CACHE=1
+            BOT_BASE_URL=${{ env.BOT_BASE_URL }}
 
   deploy-production:
     name: Deploy to Production
