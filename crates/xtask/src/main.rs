@@ -13,19 +13,12 @@ fn main() {
 fn try_main() -> Result<()> {
     let task = std::env::args().nth(1);
     match task.as_deref() {
-        Some("bot") => {
-            // Check for --serve flag
-            let serve = std::env::args().any(|arg| arg == "--serve");
-            bot(serve)
-        }
-        Some("pcap") => pcap(),
+        Some("web") => web(),
         Some("install-wasm-bindgen") => install_wasm_bindgen(),
         Some(task) => bail!("Unknown task: {task}"),
         None => {
             eprintln!("Available tasks:");
-            eprintln!("  cargo xtask bot         - Build WASM and bot");
-            eprintln!("  cargo xtask bot --serve - Build WASM, bot, and run server");
-            eprintln!("  cargo xtask pcap        - Build WASM UI only (for static deployment)");
+            eprintln!("  cargo xtask web        - Build WASM UI only (for static deployment)");
             eprintln!(
                 "  cargo xtask install-wasm-bindgen - Install wasm-bindgen CLI matching Cargo.lock"
             );
@@ -107,8 +100,8 @@ fn install_wasm_bindgen() -> Result<()> {
     Ok(())
 }
 
-fn build_wasm() -> Result<(String, String)> {
-    println!("🔨 Building WASM UI...");
+fn web() -> Result<()> {
+    println!("🔨 Building Web UI...");
 
     // Build WASM with wasm-pack using release profile for maximum size optimization
     let status = Command::new("wasm-pack")
@@ -190,49 +183,6 @@ fn build_wasm() -> Result<(String, String)> {
     }
 
     println!("✅ Assets copied");
-
-    Ok((js_filename, wasm_filename))
-}
-
-fn pcap() -> Result<()> {
-    build_wasm()?;
-    println!("✅ PCAP UI build complete! Dist files ready in dist/");
-    Ok(())
-}
-
-fn bot(serve: bool) -> Result<()> {
-    build_wasm()?;
-
-    println!("🔧 Building bot...");
-
-    // Build bot
-    let status = Command::new("cargo")
-        .args(["build", "--release", "-p", "bot"])
-        .status()
-        .context("Failed to build bot")?;
-
-    if !status.success() {
-        bail!("Bot build failed");
-    }
-
-    println!("✅ Bot build complete");
-
-    if serve {
-        println!("🚀 Starting bot server...");
-        println!();
-
-        // Run bot
-        let status = Command::new("cargo")
-            .args(["run", "--release", "-p", "bot"])
-            .status()
-            .context("Failed to run bot")?;
-
-        if !status.success() {
-            bail!("Bot failed to run");
-        }
-    } else {
-        println!("✅ Build complete! Run with --serve to start the server.");
-    }
 
     Ok(())
 }
