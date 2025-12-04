@@ -878,7 +878,10 @@ impl eframe::App for PcapViewerApp {
                     });
 
                     // Show example URL link
-                    ui.add_space(5.0);
+                    ui.add_space(10.0);
+                    ui.label("or");
+                    ui.add_space(10.0);
+
                     ui.horizontal(|ui| {
                         // Get current origin for constructing example URL
                         #[cfg(target_arch = "wasm32")]
@@ -892,7 +895,7 @@ impl eframe::App for PcapViewerApp {
                         let example_pcap_url = format!("{}/example.pcap", origin);
                         let example_url = format!("{}/?url={}", origin, example_pcap_url);
 
-                        let prefix_text = "Example: ";
+                        let prefix_text = "Create your own link ";
                         let full_text = format!("{prefix_text}{example_url}");
 
                         // Calculate width for centering the entire line
@@ -913,7 +916,7 @@ impl eframe::App for PcapViewerApp {
                             ui.add_space(left_padding);
                         }
 
-                        // Show "Example: " as plain text
+                        // Show "Create your own link " as plain text
                         ui.label(prefix_text);
 
                         // Show the URL as a clickable link and load from absolute URL
