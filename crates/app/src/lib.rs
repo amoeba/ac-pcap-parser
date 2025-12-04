@@ -880,11 +880,13 @@ impl eframe::App for PcapViewerApp {
                     // Show example URL link
                     ui.add_space(5.0);
                     ui.horizontal(|ui| {
-                        // Get the full absolute URL for the example
-                        let example_url = "./example.pcap".to_string();
+                        // Show full URL format to demonstrate how to load arbitrary PCAPs
+                        let display_url = "https://pcap.treestats.net/?url=https://pcap.treestats.net/example.pcap".to_string();
+                        // But actually load the direct PCAP file when clicked
+                        let actual_url = "https://pcap.treestats.net/example.pcap".to_string();
 
                         let prefix_text = "Example: ";
-                        let full_text = format!("{prefix_text}{example_url}");
+                        let full_text = format!("{prefix_text}{display_url}");
 
                         // Calculate width for centering the entire line
                         let total_width = ui.fonts(|f| {
@@ -907,10 +909,10 @@ impl eframe::App for PcapViewerApp {
                         // Show "Example: " as plain text
                         ui.label(prefix_text);
 
-                        // Show the URL as a clickable link
-                        if ui.link(&example_url).clicked() {
-                            self.url_input = example_url.clone();
-                            ui::file_panel::load_from_url(self, example_url, ctx);
+                        // Show the URL as a clickable link (displays full format)
+                        if ui.link(&display_url).clicked() {
+                            self.url_input = actual_url.clone();
+                            ui::file_panel::load_from_url(self, actual_url, ctx);
                         }
                     });
 
