@@ -880,10 +880,17 @@ impl eframe::App for PcapViewerApp {
                     // Show example URL link
                     ui.add_space(5.0);
                     ui.horizontal(|ui| {
-                        // Show full URL format to demonstrate how to load arbitrary PCAPs
-                        let display_url = "https://pcap.treestats.net/?url=https://pcap.treestats.net/example.pcap".to_string();
-                        // But actually load the direct PCAP file when clicked
-                        let actual_url = "https://pcap.treestats.net/example.pcap".to_string();
+                        // Get current origin for constructing example URL
+                        #[cfg(target_arch = "wasm32")]
+                        let origin = web_sys::window()
+                            .and_then(|w| w.location().origin().ok())
+                            .unwrap_or_else(|| "https://pcap.treestats.net".to_string());
+                        #[cfg(not(target_arch = "wasm32"))]
+                        let origin = "https://pcap.treestats.net".to_string();
+
+                        // Construct example URLs - use relative path for actual load to avoid CORS
+                        let display_url = format!("{}/?url={}/example.pcap", origin, origin);
+                        let actual_url = "./example.pcap".to_string();
 
                         let prefix_text = "Example: ";
                         let full_text = format!("{prefix_text}{display_url}");
