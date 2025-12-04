@@ -1017,22 +1017,13 @@ impl eframe::App for PcapViewerApp {
                         // Get the full absolute URL for the example
                         #[cfg(target_arch = "wasm32")]
                         let example_url = {
-                            if let Some(window) = web_sys::window() {
-                                if let Some(location) = window.location().href().ok() {
-                                    // Build absolute URL from current location
-                                    if let Ok(url) =
-                                        web_sys::Url::new_with_base("example.pcap", &location)
-                                    {
-                                        url.href()
-                                    } else {
-                                        "./example.pcap".to_string()
-                                    }
-                                } else {
-                                    "./example.pcap".to_string()
-                                }
-                            } else {
-                                "./example.pcap".to_string()
-                            }
+                            web_sys::window()
+                                .and_then(|w| w.location().href().ok())
+                                .and_then(|base| {
+                                    web_sys::Url::new_with_base("example.pcap", &base).ok()
+                                })
+                                .map(|u| u.href())
+                                .unwrap_or_else(|| "./example.pcap".to_string())
                         };
                         #[cfg(not(target_arch = "wasm32"))]
                         let example_url = "./example.pcap".to_string();
