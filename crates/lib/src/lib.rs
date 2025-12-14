@@ -11,8 +11,6 @@ use serde::{Serialize, Serializer};
 use std::collections::HashMap;
 use std::io::Read;
 
-pub mod enums;
-pub mod message;
 pub mod messages;
 pub mod properties;
 pub mod protocol;
@@ -273,9 +271,9 @@ impl PacketParser {
                 }
             }
 
-            let current_pos = reader.position() as usize;
+            let current_pos = reader.position();
             if current_pos < packet_end {
-                reader.set_position(packet_end as u64);
+                reader.set_position(packet_end);
             }
 
             packets.push(parsed_packet);
