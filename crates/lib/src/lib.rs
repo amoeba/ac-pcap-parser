@@ -228,12 +228,12 @@ impl PacketParser {
         let mut reader = BinaryReader::new(data);
 
         while reader.remaining() > 0 {
-            let start_pos = reader.position() as usize;
+            let start_pos = reader.position();
 
             let header = PacketHeader::parse(&mut reader)?;
 
             let packet_end = start_pos + PacketHeader::BASE_SIZE + header.size as usize;
-            let payload_start = reader.position() as usize;
+            let payload_start = reader.position();
             let payload_size = packet_end.saturating_sub(payload_start);
 
             // Capture raw payload bytes
@@ -255,7 +255,7 @@ impl PacketParser {
             *packet_id += 1;
 
             if header.flags.contains(PacketHeaderFlags::BLOB_FRAGMENTS) {
-                while (reader.position() as usize) < packet_end && reader.remaining() > 0 {
+                while reader.position() < packet_end && reader.remaining() > 0 {
                     match self.parse_fragment(&mut reader, direction, timestamp, message_id) {
                         Ok((frag_info, msgs)) => {
                             parsed_packet.fragment = Some(frag_info);

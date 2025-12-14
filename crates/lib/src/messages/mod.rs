@@ -1,4 +1,5 @@
 use anyhow::Result;
+use core::panic;
 use serde::Serialize;
 use std::io::Cursor;
 
@@ -82,7 +83,7 @@ fn determine_direction(opcode: u32) -> Direction {
     } else if S2CMessage::try_from(opcode).is_ok() {
         Direction::ServerToClient
     } else {
-        Direction::ServerToClient
+        panic!("Unhandled opcode, couldn't determine C2S or S2C.")
     }
 }
 
