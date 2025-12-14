@@ -42,7 +42,7 @@ pub fn parse_message(data: &[u8], id: usize) -> Result<ParsedMessage> {
 
     // Parse the message using acprotocol
     let mut cursor = Cursor::new(data);
-    let mut reader: &mut dyn ACReader = &mut cursor;
+    let reader: &mut dyn ACReader = &mut cursor;
 
     let parsed_data = match MessageKind::read(reader, direction) {
         Ok(message) => {
