@@ -9,7 +9,7 @@ crate-type = ["rlib"]
 
 # Desktop binary
 [[bin]]
-name = "viewer"
+name = "desktop"
 path = "src/bin/desktop.rs"
 
 [features]
