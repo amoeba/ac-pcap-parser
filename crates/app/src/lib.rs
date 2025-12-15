@@ -8,7 +8,7 @@ pub mod time_scrubber;
 pub mod ui;
 
 use eframe::egui;
-use lib::{messages::ParsedMessage, ParsedPacket};
+use lib::{ParsedPacket, messages::ParsedMessage};
 use std::sync::{Arc, Mutex};
 use time_scrubber::TimeScrubber;
 

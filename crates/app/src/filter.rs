@@ -25,7 +25,8 @@ pub fn parse_filter_string(s: &str) -> Vec<Filter> {
     }
 
     // Try to parse as hex with 0x prefix
-    if (s.starts_with("0x") || s.starts_with("0X")) && s.len() > 2
+    if (s.starts_with("0x") || s.starts_with("0X"))
+        && s.len() > 2
         && let Ok(value) = u32::from_str_radix(&s[2..], 16)
     {
         // Return both hex and decimal representations

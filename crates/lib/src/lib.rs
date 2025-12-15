@@ -5,8 +5,8 @@
 
 use acprotocol::network::packet::PacketHeader;
 use acprotocol::network::packet::PacketHeaderFlags;
-use acprotocol::unified::Direction;
 use acprotocol::network::reader::BinaryReader;
+use acprotocol::unified::Direction;
 use anyhow::{Context, Result};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use pcap_parser::traits::PcapReaderIterator;

@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 use std::collections::HashMap;
 use std::fs::File;
 
-use lib::{messages::ParsedMessage, PacketParser, ParsedPacket};
+use lib::{PacketParser, ParsedPacket, messages::ParsedMessage};
 
 mod filter;
 mod tui;
@@ -156,14 +156,8 @@ fn print_summary(
     println!("Messages: {}", messages.len());
     println!("Weenies: {}", weenie_db.count());
 
-    let send_packets = packets
-        .iter()
-        .filter(|p| p.direction == "Send")
-        .count();
-    let recv_packets = packets
-        .iter()
-        .filter(|p| p.direction == "Recv")
-        .count();
+    let send_packets = packets.iter().filter(|p| p.direction == "Send").count();
+    let recv_packets = packets.iter().filter(|p| p.direction == "Recv").count();
     println!("\nPackets by Direction:");
     println!("  Send (C→S): {send_packets}");
     println!("  Recv (S→C): {recv_packets}");
@@ -248,11 +242,7 @@ fn output_messages(
             SortField::Type => a.message_type.cmp(&b.message_type),
             SortField::Direction => a.direction.cmp(&b.direction),
         };
-        if reverse {
-            cmp.reverse()
-        } else {
-            cmp
-        }
+        if reverse { cmp.reverse() } else { cmp }
     });
 
     if let Some(lim) = limit {
@@ -321,11 +311,7 @@ fn output_fragments(
                 format!("{:?}", a.direction).cmp(&format!("{:?}", b.direction))
             }
         };
-        if reverse {
-            cmp.reverse()
-        } else {
-            cmp
-        }
+        if reverse { cmp.reverse() } else { cmp }
     });
 
     if let Some(lim) = limit {
@@ -428,11 +414,7 @@ fn output_weenies(
             }
             WeenieSortField::Messages => a.message_count.cmp(&b.message_count),
         };
-        if reverse {
-            cmp.reverse()
-        } else {
-            cmp
-        }
+        if reverse { cmp.reverse() } else { cmp }
     });
 
     if let Some(lim) = limit {
