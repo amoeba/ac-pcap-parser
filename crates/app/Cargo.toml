@@ -9,7 +9,7 @@ crate-type = ["rlib"]
 
 # Desktop binary
 [[bin]]
-name = "ac-pcap-viewer"
+name = "viewer"
 path = "src/bin/desktop.rs"
 
 [features]
