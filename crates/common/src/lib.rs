@@ -223,16 +223,6 @@ impl PacketParser {
                                 ) {
                                     Ok((mut parsed_packets, msgs)) => {
                                         packets.append(&mut parsed_packets);
-
-                                        // Extract weenie updates from each message
-                                        for msg in &msgs {
-                                            let updates =
-                                                weenie_extractor::extract_weenie_updates(msg);
-                                            for update in updates {
-                                                weenie_db.add_or_update(update);
-                                            }
-                                        }
-
                                         all_messages.extend(msgs);
                                     }
                                     Err(_e) => {
@@ -256,6 +246,14 @@ impl PacketParser {
                 Err(_e) => {
                     break;
                 }
+            }
+        }
+
+        // Extract weenie updates from all messages
+        for msg in &all_messages {
+            let updates = weenie_extractor::extract_weenie_updates(msg);
+            for update in updates {
+                weenie_db.add_or_update(update);
             }
         }
 
