@@ -31,7 +31,7 @@ dependencies = [
 [[package]]
 name = "acprotocol"
 version = "0.1.0"
-source = "git+https://github.com/amoeba/wip-rust-ac-proto#9365f4592bd4a2c61b818529911b126172fc06ae"
+source = "git+https://github.com/amoeba/asheron-rs#9365f4592bd4a2c61b818529911b126172fc06ae"
 dependencies = [
  "anyhow",
  "bitflags 2.10.0",
@@ -658,7 +658,7 @@ dependencies = [
 [[package]]
 name = "codegen"
 version = "0.1.0"
-source = "git+https://github.com/amoeba/wip-rust-ac-proto#9365f4592bd4a2c61b818529911b126172fc06ae"
+source = "git+https://github.com/amoeba/asheron-rs#9365f4592bd4a2c61b818529911b126172fc06ae"
 dependencies = [
  "env_logger",
  "log",
