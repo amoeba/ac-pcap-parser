@@ -83,7 +83,10 @@ fn determine_direction(opcode: u32) -> Result<Direction> {
     } else if S2CMessage::try_from(opcode).is_ok() {
         Ok(Direction::ServerToClient)
     } else {
-        anyhow::bail!("Unhandled opcode 0x{:04X}, couldn't determine C2S or S2C", opcode)
+        anyhow::bail!(
+            "Unhandled opcode 0x{:04X}, couldn't determine C2S or S2C",
+            opcode
+        )
     }
 }
 
