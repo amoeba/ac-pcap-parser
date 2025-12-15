@@ -196,7 +196,7 @@ async fn fetch_discord_pcap(channel_id: &str, message_id: &str) -> Result<Vec<u8
         BOT_BASE_URL, channel_id, message_id
     );
 
-    let mut opts = RequestInit::new();
+    let opts = RequestInit::new();
     opts.set_method("GET");
 
     let request = Request::new_with_str_and_init(&url, &opts)
@@ -231,7 +231,7 @@ async fn fetch_bytes(url: &str) -> Result<Vec<u8>, String> {
     use wasm_bindgen_futures::JsFuture;
     use web_sys::{Request, RequestInit, Response};
 
-    let mut opts = RequestInit::new();
+    let opts = RequestInit::new();
     opts.set_method("GET");
 
     let request = Request::new_with_str_and_init(url, &opts)

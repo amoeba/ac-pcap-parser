@@ -1,5 +1,4 @@
 use anyhow::Result;
-use core::panic;
 use serde::Serialize;
 use std::io::Cursor;
 
