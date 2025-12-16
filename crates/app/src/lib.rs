@@ -250,8 +250,31 @@ impl eframe::App for PcapViewerApp {
         ctx.input(|i| {
             if !i.raw.dropped_files.is_empty() {
                 for file in &i.raw.dropped_files {
-                    if let Some(bytes) = &file.bytes {
-                        self.dropped_file_data = Some(bytes.to_vec());
+                    #[cfg(feature = "desktop")]
+                    {
+                        if let Some(path) = &file.path {
+                            self.status_message = format!("Loading {}...", path.display());
+                            match std::fs::read(path) {
+                                Ok(data) => self.dropped_file_data = Some(data),
+                                Err(e) => self.show_error(format!("Error reading file: {e}")),
+                            }
+                        } else if let Some(bytes) = &file.bytes {
+                            self.dropped_file_data = Some(bytes.to_vec());
+                        } else {
+                            self.show_error(
+                                "Failed to read dropped file as path or byte array. Please report a bug.s",
+                            );
+                        }
+                    }
+                    #[cfg(not(feature = "desktop"))]
+                    {
+                        if let Some(bytes) = &file.bytes {
+                            self.dropped_file_data = Some(bytes.to_vec());
+                        } else {
+                            self.show_error(
+                                "Failed to read dropped file as byte array. Please report a bug.s",
+                            );
+                        }
                     }
                 }
             }
