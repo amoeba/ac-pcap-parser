@@ -367,7 +367,7 @@ fn show_messages_table(
     sort_ascending: bool,
 ) {
     let available_width = ui.available_width();
-    
+
     if is_mobile {
         let widths = [
             available_width * 0.12,
@@ -379,7 +379,17 @@ fn show_messages_table(
 
         // Mobile header
         ui.horizontal(|ui| {
-            if mobile_header_cell(ui, widths[0], false, "ID", SortField::Id, sort_field, sort_ascending).clicked() {
+            if mobile_header_cell(
+                ui,
+                widths[0],
+                false,
+                "ID",
+                SortField::Id,
+                sort_field,
+                sort_ascending,
+            )
+            .clicked()
+            {
                 if sort_field == SortField::Id {
                     app.sort_ascending = !app.sort_ascending;
                 } else {
@@ -387,7 +397,17 @@ fn show_messages_table(
                     app.sort_ascending = true;
                 }
             }
-            if mobile_header_cell(ui, widths[1], false, "Type", SortField::Type, sort_field, sort_ascending).clicked() {
+            if mobile_header_cell(
+                ui,
+                widths[1],
+                false,
+                "Type",
+                SortField::Type,
+                sort_field,
+                sort_ascending,
+            )
+            .clicked()
+            {
                 if sort_field == SortField::Type {
                     app.sort_ascending = !app.sort_ascending;
                 } else {
@@ -395,7 +415,17 @@ fn show_messages_table(
                     app.sort_ascending = true;
                 }
             }
-            if mobile_header_cell(ui, widths[2], true, "Dir", SortField::Direction, sort_field, sort_ascending).clicked() {
+            if mobile_header_cell(
+                ui,
+                widths[2],
+                true,
+                "Dir",
+                SortField::Direction,
+                sort_field,
+                sort_ascending,
+            )
+            .clicked()
+            {
                 if sort_field == SortField::Direction {
                     app.sort_ascending = !app.sort_ascending;
                 } else {
@@ -480,7 +510,9 @@ fn show_messages_table(
                     app.sort_ascending = true;
                 }
             }
-            if desktop_header_cell(ui, "Type", SortField::Type, sort_field, sort_ascending).clicked() {
+            if desktop_header_cell(ui, "Type", SortField::Type, sort_field, sort_ascending)
+                .clicked()
+            {
                 if sort_field == SortField::Type {
                     app.sort_ascending = !app.sort_ascending;
                 } else {
@@ -488,7 +520,9 @@ fn show_messages_table(
                     app.sort_ascending = true;
                 }
             }
-            if desktop_header_cell(ui, "Dir", SortField::Direction, sort_field, sort_ascending).clicked() {
+            if desktop_header_cell(ui, "Dir", SortField::Direction, sort_field, sort_ascending)
+                .clicked()
+            {
                 if sort_field == SortField::Direction {
                     app.sort_ascending = !app.sort_ascending;
                 } else {
@@ -496,7 +530,9 @@ fn show_messages_table(
                     app.sort_ascending = true;
                 }
             }
-            if desktop_header_cell(ui, "OpCode", SortField::OpCode, sort_field, sort_ascending).clicked() {
+            if desktop_header_cell(ui, "OpCode", SortField::OpCode, sort_field, sort_ascending)
+                .clicked()
+            {
                 if sort_field == SortField::OpCode {
                     app.sort_ascending = !app.sort_ascending;
                 } else {
@@ -532,7 +568,9 @@ fn show_messages_table(
                 });
 
                 row.col(|ui| {
-                    if desktop_marked_cell(ui, is_selected, is_marked, msg_type.to_string()).clicked() {
+                    if desktop_marked_cell(ui, is_selected, is_marked, msg_type.to_string())
+                        .clicked()
+                    {
                         app.selected_message = Some(*original_idx);
                     }
                 });
@@ -556,7 +594,8 @@ fn show_messages_table(
                 });
 
                 row.col(|ui| {
-                    if desktop_marked_cell(ui, is_selected, is_marked, opcode.to_string()).clicked() {
+                    if desktop_marked_cell(ui, is_selected, is_marked, opcode.to_string()).clicked()
+                    {
                         app.selected_message = Some(*original_idx);
                     }
                 });
@@ -625,7 +664,7 @@ fn show_packets_table(
     sort_ascending: bool,
 ) {
     let available_width = ui.available_width();
-    
+
     if is_mobile {
         let widths = [
             available_width * 0.15,
@@ -639,7 +678,17 @@ fn show_packets_table(
 
         // Mobile header
         ui.horizontal(|ui| {
-            if mobile_header_cell(ui, widths[0], false, "ID", SortField::Id, sort_field, sort_ascending).clicked() {
+            if mobile_header_cell(
+                ui,
+                widths[0],
+                false,
+                "ID",
+                SortField::Id,
+                sort_field,
+                sort_ascending,
+            )
+            .clicked()
+            {
                 if sort_field == SortField::Id {
                     app.sort_ascending = !app.sort_ascending;
                 } else {
@@ -647,7 +696,17 @@ fn show_packets_table(
                     app.sort_ascending = true;
                 }
             }
-            if mobile_header_cell(ui, widths[1], false, "Seq", SortField::Type, sort_field, sort_ascending).clicked() {
+            if mobile_header_cell(
+                ui,
+                widths[1],
+                false,
+                "Seq",
+                SortField::Type,
+                sort_field,
+                sort_ascending,
+            )
+            .clicked()
+            {
                 if sort_field == SortField::Type {
                     app.sort_ascending = !app.sort_ascending;
                 } else {
@@ -655,7 +714,17 @@ fn show_packets_table(
                     app.sort_ascending = true;
                 }
             }
-            if mobile_header_cell(ui, widths[2], true, "Dir", SortField::Direction, sort_field, sort_ascending).clicked() {
+            if mobile_header_cell(
+                ui,
+                widths[2],
+                true,
+                "Dir",
+                SortField::Direction,
+                sort_field,
+                sort_ascending,
+            )
+            .clicked()
+            {
                 if sort_field == SortField::Direction {
                     app.sort_ascending = !app.sort_ascending;
                 } else {
@@ -664,8 +733,24 @@ fn show_packets_table(
                 }
             }
             // Flags and Size are not sortable
-            mobile_header_cell(ui, widths[3], false, "Flags", SortField::Id, SortField::Id, true);
-            mobile_header_cell(ui, widths[4], false, "Size", SortField::Id, SortField::Id, true);
+            mobile_header_cell(
+                ui,
+                widths[3],
+                false,
+                "Flags",
+                SortField::Id,
+                SortField::Id,
+                true,
+            );
+            mobile_header_cell(
+                ui,
+                widths[4],
+                false,
+                "Size",
+                SortField::Id,
+                SortField::Id,
+                true,
+            );
         });
         ui.separator();
 
@@ -698,8 +783,15 @@ fn show_packets_table(
                 });
 
                 row.col(|ui| {
-                    if mobile_cell(ui, widths[1], false, is_selected, is_marked, seq.to_string())
-                        .clicked()
+                    if mobile_cell(
+                        ui,
+                        widths[1],
+                        false,
+                        is_selected,
+                        is_marked,
+                        seq.to_string(),
+                    )
+                    .clicked()
                     {
                         app.selected_packet = Some(*original_idx);
                         app.show_detail_panel = true;
@@ -733,8 +825,15 @@ fn show_packets_table(
                 });
 
                 row.col(|ui| {
-                    if mobile_cell(ui, widths[3], false, is_selected, is_marked, format!("{flags:08X}"))
-                        .clicked()
+                    if mobile_cell(
+                        ui,
+                        widths[3],
+                        false,
+                        is_selected,
+                        is_marked,
+                        format!("{flags:08X}"),
+                    )
+                    .clicked()
                     {
                         app.selected_packet = Some(*original_idx);
                         app.show_detail_panel = true;
@@ -742,8 +841,15 @@ fn show_packets_table(
                 });
 
                 row.col(|ui| {
-                    if mobile_cell(ui, widths[4], false, is_selected, is_marked, size.to_string())
-                        .clicked()
+                    if mobile_cell(
+                        ui,
+                        widths[4],
+                        false,
+                        is_selected,
+                        is_marked,
+                        size.to_string(),
+                    )
+                    .clicked()
                     {
                         app.selected_packet = Some(*original_idx);
                         app.show_detail_panel = true;
@@ -762,7 +868,9 @@ fn show_packets_table(
                     app.sort_ascending = true;
                 }
             }
-            if desktop_header_cell(ui, "Sequence", SortField::Type, sort_field, sort_ascending).clicked() {
+            if desktop_header_cell(ui, "Sequence", SortField::Type, sort_field, sort_ascending)
+                .clicked()
+            {
                 if sort_field == SortField::Type {
                     app.sort_ascending = !app.sort_ascending;
                 } else {
@@ -770,7 +878,15 @@ fn show_packets_table(
                     app.sort_ascending = true;
                 }
             }
-            if desktop_header_cell(ui, "Direction", SortField::Direction, sort_field, sort_ascending).clicked() {
+            if desktop_header_cell(
+                ui,
+                "Direction",
+                SortField::Direction,
+                sort_field,
+                sort_ascending,
+            )
+            .clicked()
+            {
                 if sort_field == SortField::Direction {
                     app.sort_ascending = !app.sort_ascending;
                 } else {

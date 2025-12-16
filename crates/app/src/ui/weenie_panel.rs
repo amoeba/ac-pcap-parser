@@ -66,29 +66,29 @@ fn show_weenie_table(
             .column(Column::remainder().at_least(200.0))
             .min_scrolled_height(0.0)
             .body(|body| {
-        body.rows(20.0, weenies.len(), |mut row| {
-            let row_index = row.index();
-            let weenie = weenies[row_index];
-            let is_selected = app.selected_weenie == Some(row_index);
+                body.rows(20.0, weenies.len(), |mut row| {
+                    let row_index = row.index();
+                    let weenie = weenies[row_index];
+                    let is_selected = app.selected_weenie == Some(row_index);
 
-            row.set_selected(is_selected);
+                    row.set_selected(is_selected);
 
-            row.col(|ui| {
-                if ui
-                    .selectable_label(
-                        is_selected,
-                        format!(
-                            "{} - {}",
-                            weenie.object_id,
-                            weenie.name.as_deref().unwrap_or("<unknown>")
-                        ),
-                    )
-                    .clicked()
-                {
-                    app.selected_weenie = Some(row_index);
-                }
-            });
-        });
+                    row.col(|ui| {
+                        if ui
+                            .selectable_label(
+                                is_selected,
+                                format!(
+                                    "{} - {}",
+                                    weenie.object_id,
+                                    weenie.name.as_deref().unwrap_or("<unknown>")
+                                ),
+                            )
+                            .clicked()
+                        {
+                            app.selected_weenie = Some(row_index);
+                        }
+                    });
+                });
             });
     } else {
         // Desktop table with four columns
