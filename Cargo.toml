@@ -2,7 +2,6 @@
 resolver = "2"
 members = [
   "crates/app",
-  "crates/cli",
   "crates/common",
   "crates/web",
   "crates/xtask",
@@ -13,7 +12,8 @@ version = "0.1.0"
 edition = "2024"
 
 [workspace.dependencies]
-acprotocol = { git = "https://github.com/amoeba/asheron-rs", default-features = false }
+# acprotocol = { git = "https://github.com/amoeba/asheron-rs", default-features = false }
+acprotocol = { path = "/Users/bryce/src/amoeba/asheron-rs/crates/acprotocol", default-features = false }
 anyhow = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
