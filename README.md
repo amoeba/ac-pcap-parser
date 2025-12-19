@@ -1,6 +1,6 @@
 # AC PCAP Viewer
 
-A viewer for Asheron's Call network packet captures. Decodes PCAP files into human-readable JSON, available as a web app, desktop app, or CLI tool.
+A desktop and web viewer for Asheron's Call network packet captures. Decodes PCAP files into human-readable JSON, available as a web app, desktop app.
 
 ## About This Project
 
