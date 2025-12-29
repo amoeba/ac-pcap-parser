@@ -3,17 +3,12 @@
 //! This library provides functionality to parse PCAP files containing
 //! Asheron's Call network traffic.
 
-use acprotocol::network::packet::PacketHeader;
 pub use acprotocol::enums::PacketHeaderFlags;
-use acprotocol::readers::{ACReader, ACDataType, read_u32, read_u16};
-use acprotocol::message::Direction;
+use acprotocol::network::packet::PacketHeader;
+use acprotocol::network::pcap::PcapIterator;
+use acprotocol::network::packet_parser::FragmentAssembler;
 use anyhow::{Context, Result};
-use std::io::Cursor;
-use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
-use pcap_parser::traits::PcapReaderIterator;
-use pcap_parser::*;
 use serde::Serialize;
-use std::collections::HashMap;
 use std::io::Read;
 
 pub mod messages;
@@ -22,70 +17,6 @@ pub mod serialization;
 pub mod tree;
 pub mod weenie;
 pub mod weenie_extractor;
-
-// Fragment and FragmentHeader structures for managing packet fragments
-#[derive(Clone, Debug)]
-struct Fragment {
-    header: FragmentHeader,
-    data: Vec<u8>,
-    length: usize,
-    received: usize,
-}
-
-#[derive(Clone, Debug)]
-struct FragmentHeader {
-    #[allow(dead_code)]
-    sequence: u32,
-    #[allow(dead_code)]
-    id: u32,
-    count: u16,
-    #[allow(dead_code)]
-    size: u16,
-    #[allow(dead_code)]
-    index: u16,
-    #[allow(dead_code)]
-    group: Option<u16>,
-}
-
-impl Fragment {
-    fn new(sequence: u32, count: u16) -> Self {
-        const CHUNK_SIZE: usize = 448;
-        Self {
-            header: FragmentHeader {
-                sequence,
-                id: 0,
-                count,
-                size: 0,
-                index: 0,
-                group: None,
-            },
-            data: vec![0; count as usize * CHUNK_SIZE],
-            length: 0,
-            received: 0,
-        }
-    }
-
-    fn add_chunk(&mut self, data: &[u8], index: usize) {
-        const CHUNK_SIZE: usize = 448;
-        let start = index * CHUNK_SIZE;
-        let end = start + data.len();
-        if end <= self.data.len() {
-            self.data[start..end].copy_from_slice(data);
-            if end > self.length {
-                self.length = end;
-            }
-            if index >= self.received {
-                self.received = index + 1;
-            }
-        }
-    }
-
-    fn is_complete(&self) -> bool {
-        self.received >= self.header.count as usize
-    }
-}
-
-// Re-export properties from acprotocol via protocol module
 
 /// UI tab selection
 #[derive(Default, PartialEq, Eq, Clone, Copy)]
@@ -149,15 +80,11 @@ pub struct ParsedPacket {
 }
 
 /// Main parser for PCAP files
-pub struct PacketParser {
-    pending_fragments: HashMap<u32, Fragment>,
-}
+pub struct PacketParser {}
 
 impl PacketParser {
     pub fn new() -> Self {
-        Self {
-            pending_fragments: HashMap::new(),
-        }
+        Self {}
     }
 
     /// Parse a PCAP file from a reader
@@ -192,62 +119,78 @@ impl PacketParser {
         let mut packet_id = 0;
         let mut message_id = 0;
 
-        let mut reader =
-            LegacyPcapReader::new(65536, buffer).context("Failed to create pcap reader")?;
+        // Create iterator and assembler
+        let iter = PcapIterator::<std::io::Cursor<&[u8]>>::from_bytes(buffer)
+            .context("Failed to create pcap iterator")?;
+        let mut assembler = FragmentAssembler::new();
 
-        loop {
-            match reader.next() {
-                Ok((offset, block)) => {
-                    match block {
-                        PcapBlockOwned::Legacy(packet) => {
-                            let data = packet.data;
-                            // Extract timestamp (seconds + microseconds)
-                            let timestamp =
-                                packet.ts_sec as f64 + (packet.ts_usec as f64 / 1_000_000.0);
+        for result in iter {
+            let packet = result.context("Failed to read packet")?;
 
-                            // Skip to UDP payload (Ethernet + IP + UDP headers = 42 bytes)
-                            if data.len() > 42 {
-                                let udp_payload = &data[42..];
+            // Extract timestamp (seconds + microseconds)
+            let timestamp = packet.ts_sec as f64 + (packet.ts_usec as f64 / 1_000_000.0);
 
-                                // Determine direction from port
-                                let src_port = u16::from_be_bytes([data[34], data[35]]);
-                                let direction = if (9000..=9013).contains(&src_port) {
-                                    Direction::ServerToClient // From server
-                                } else {
-                                    Direction::ClientToServer // To server
-                                };
+            // Use FragmentAssembler to parse the packet payload
+            // This handles header stripping, fragment assembly, and message parsing
+            match assembler.parse_packet_payload(&packet.data) {
+                Ok(messages) => {
+                    if !messages.is_empty() {
+                        // Create a ParsedPacket for this packet
+                        // Note: We don't have direct access to the packet header anymore,
+                        // so we'll create a minimal packet entry
+                        let mut parsed_messages_json = Vec::new();
 
-                                match self.parse_packet(
-                                    udp_payload,
-                                    direction,
-                                    timestamp,
-                                    &mut packet_id,
-                                    &mut message_id,
-                                ) {
-                                    Ok((mut parsed_packets, msgs)) => {
-                                        packets.append(&mut parsed_packets);
-                                        all_messages.extend(msgs);
-                                    }
-                                    Err(_e) => {
-                                        // Skip failed packets silently
-                                    }
-                                }
-                            }
+                        for msg in messages {
+                            // Convert acprotocol message to our ParsedMessage format
+                            let message_type = msg.message_type.clone();
+                            let opcode_str = format!("{:04X}", msg.opcode);
+
+                            // Serialize the message to JSON
+                            let data = serde_json::to_value(&msg)
+                                .unwrap_or_else(|_| serde_json::json!({}));
+
+                            parsed_messages_json.push(data.clone());
+
+                            // The direction is already a string in the message
+                            let direction_str = msg.direction.clone();
+
+                            // Create ParsedMessage
+                            let parsed_msg = messages::ParsedMessage {
+                                id: message_id,
+                                message_type,
+                                data,
+                                direction: direction_str,
+                                opcode: opcode_str,
+                                timestamp,
+                                raw_bytes: Vec::new(), // We don't have access to raw bytes anymore
+                            };
+
+                            all_messages.push(parsed_msg);
+                            message_id += 1;
                         }
-                        PcapBlockOwned::LegacyHeader(_) => {}
-                        _ => {}
+
+                        // Create a minimal ParsedPacket
+                        // Since we don't parse packet headers directly anymore, we create a stub
+                        let parsed_packet = ParsedPacket {
+                            header: PacketHeader::with_flags(PacketHeaderFlags::empty()),
+                            direction: if !all_messages.is_empty() {
+                                all_messages.last().unwrap().direction.clone()
+                            } else {
+                                "Unknown".to_string()
+                            },
+                            messages: parsed_messages_json,
+                            fragment: None, // Fragment info not available with FragmentAssembler
+                            id: packet_id,
+                            timestamp,
+                            raw_payload: Vec::new(),
+                        };
+
+                        packets.push(parsed_packet);
+                        packet_id += 1;
                     }
-                    reader.consume(offset);
-                }
-                Err(PcapError::Eof) => break,
-                Err(PcapError::Incomplete(_)) => {
-                    // When reading from a byte slice (as in WASM), refill is not needed
-                    // since the entire buffer is already in memory
-                    reader.refill().ok();
-                    continue;
                 }
                 Err(_e) => {
-                    break;
+                    // Skip failed packets silently
                 }
             }
         }
@@ -286,166 +229,6 @@ impl PacketParser {
         eprintln!("Final weenie count: {}\n", weenie_db.count());
 
         Ok((packets, all_messages, weenie_db))
-    }
-
-    fn parse_packet(
-        &mut self,
-        data: &[u8],
-        direction: Direction,
-        timestamp: f64,
-        packet_id: &mut usize,
-        message_id: &mut usize,
-    ) -> Result<(Vec<ParsedPacket>, Vec<messages::ParsedMessage>)> {
-        let mut packets = Vec::new();
-        let mut all_messages = Vec::new();
-        let mut cursor = Cursor::new(data);
-
-        while (cursor.position() as usize) < data.len() {
-            let start_pos = cursor.position() as usize;
-
-            let header = PacketHeader::read(&mut cursor as &mut dyn ACReader)
-                .map_err(|e| anyhow::anyhow!("{}", e))?;
-
-            let packet_end = start_pos + PacketHeader::BASE_SIZE + header.size as usize;
-            let payload_start = cursor.position() as usize;
-            let payload_size = packet_end.saturating_sub(payload_start);
-
-            // Capture raw payload bytes
-            let raw_payload = if payload_size > 0 && payload_size <= data.len() - payload_start {
-                data[payload_start..payload_start + payload_size].to_vec()
-            } else {
-                Vec::new()
-            };
-
-            let direction_str = match direction {
-                Direction::ClientToServer => "Send".to_string(),
-                Direction::ServerToClient => "Recv".to_string(),
-            };
-
-            let mut parsed_packet = ParsedPacket {
-                header: header.clone(),
-                direction: direction_str,
-                messages: Vec::new(),
-                fragment: None,
-                id: *packet_id,
-                timestamp,
-                raw_payload,
-            };
-            *packet_id += 1;
-
-            if header.flags.contains(PacketHeaderFlags::BLOB_FRAGMENTS) {
-                while (cursor.position() as usize) < packet_end && (cursor.position() as usize) < data.len() {
-                    match self.parse_fragment(&mut cursor, direction, timestamp, message_id) {
-                        Ok((frag_info, msgs)) => {
-                            parsed_packet.fragment = Some(frag_info);
-                            for msg in msgs {
-                                parsed_packet.messages.push(msg.data.clone());
-                                all_messages.push(msg);
-                            }
-                        }
-                        Err(_e) => {
-                            break;
-                        }
-                    }
-                }
-            }
-
-            let current_pos = cursor.position() as usize;
-            if current_pos < packet_end {
-                cursor.set_position(packet_end as u64);
-            }
-
-            packets.push(parsed_packet);
-        }
-
-        Ok((packets, all_messages))
-    }
-
-    fn parse_fragment(
-        &mut self,
-        cursor: &mut Cursor<&[u8]>,
-        direction: Direction,
-        timestamp: f64,
-        message_id: &mut usize,
-    ) -> Result<(FragmentInfo, Vec<messages::ParsedMessage>)> {
-        let mut parsed_messages = Vec::new();
-
-        let sequence = read_u32(&mut *cursor as &mut dyn ACReader)
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
-        let id = read_u32(&mut *cursor as &mut dyn ACReader)
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
-        let count = read_u16(&mut *cursor as &mut dyn ACReader)
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
-        let size = read_u16(&mut *cursor as &mut dyn ACReader)
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
-        let index = read_u16(&mut *cursor as &mut dyn ACReader)
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
-        let _group = read_u16(&mut *cursor as &mut dyn ACReader)
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
-
-        if size < 16 {
-            anyhow::bail!("Invalid fragment size: {size}");
-        }
-
-        let frag_length = size as usize - 16;
-
-        let remaining = cursor.get_ref().len() - cursor.position() as usize;
-        if remaining < frag_length {
-            anyhow::bail!("Fragment data too short");
-        }
-
-        let mut bytes = vec![0u8; frag_length];
-        std::io::Read::read_exact(cursor, &mut bytes)?;
-
-        let fragment = self
-            .pending_fragments
-            .entry(sequence)
-            .or_insert_with(|| Fragment::new(sequence, count));
-
-        fragment.add_chunk(&bytes, index as usize);
-
-        fragment.header = FragmentHeader {
-            sequence,
-            id,
-            count,
-            size,
-            index,
-            group: None,
-        };
-
-        let is_complete = fragment.is_complete();
-        let frag_data = fragment.data[..fragment.length].to_vec();
-        let frag_received = fragment.received;
-        let frag_length = fragment.length;
-
-        let frag_info = FragmentInfo {
-            data: BASE64.encode(&frag_data),
-            count,
-            received: frag_received,
-            length: frag_length,
-            sequence,
-        };
-
-        if is_complete {
-            self.pending_fragments.remove(&sequence);
-
-            match messages::parse_message(&frag_data, *message_id) {
-                Ok(mut parsed) => {
-                    parsed.direction = match direction {
-                        Direction::ClientToServer => "Send".to_string(),
-                        Direction::ServerToClient => "Recv".to_string(),
-                    };
-                    parsed.timestamp = timestamp;
-                    parsed_messages.push(parsed);
-                    *message_id += 1;
-                }
-                Err(_e) => {
-                    // Skip failed messages
-                }
-            }
-        }
-
-        Ok((frag_info, parsed_messages))
     }
 }
 
