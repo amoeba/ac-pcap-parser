@@ -5,8 +5,8 @@
 
 pub use acprotocol::enums::PacketHeaderFlags;
 use acprotocol::network::packet::PacketHeader;
-use acprotocol::network::pcap::PcapIterator;
 use acprotocol::network::packet_parser::FragmentAssembler;
+use acprotocol::network::pcap::PcapIterator;
 use anyhow::{Context, Result};
 use serde::Serialize;
 use std::io::Read;

@@ -1,15 +1,15 @@
-use acprotocol::network::pcap::PcapIterator;
 use acprotocol::network::packet_parser::FragmentAssembler;
+use acprotocol::network::pcap::PcapIterator;
 use std::fs;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    
+
     if args.len() < 2 {
         eprintln!("Usage: {} <pcap_file>", args[0]);
         std::process::exit(1);
     }
-    
+
     let path = &args[1];
     let data = fs::read(path).unwrap_or_else(|e| {
         eprintln!("Failed to read file '{}': {}", path, e);
@@ -27,8 +27,13 @@ fn main() {
                 match result {
                     Ok(packet) => {
                         packet_count += 1;
-                        println!("Packet {}: ts={}.{:06}, size={} bytes",
-                                 packet_count, packet.ts_sec, packet.ts_usec, packet.data.len());
+                        println!(
+                            "Packet {}: ts={}.{:06}, size={} bytes",
+                            packet_count,
+                            packet.ts_sec,
+                            packet.ts_usec,
+                            packet.data.len()
+                        );
 
                         // Use acprotocol's parse_packet_payload which handles all the header stripping
                         // and fragment assembly for us
@@ -36,8 +41,10 @@ fn main() {
                             Ok(messages) => {
                                 for msg in messages {
                                     message_count += 1;
-                                    println!("  Message {}: {} (opcode: 0x{:04X})",
-                                             message_count, msg.message_type, msg.opcode);
+                                    println!(
+                                        "  Message {}: {} (opcode: 0x{:04X})",
+                                        message_count, msg.message_type, msg.opcode
+                                    );
 
                                     // Serialize to JSON to see the full parsed data
                                     if let Ok(json) = serde_json::to_string_pretty(&msg) {
