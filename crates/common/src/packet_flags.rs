@@ -1,4 +1,4 @@
-use acprotocol::network::packet::PacketHeaderFlags;
+use acprotocol::enums::PacketHeaderFlags;
 
 /// Mapping of flag names to their short display forms for the TUI
 pub fn format_packet_flags(flags: PacketHeaderFlags) -> String {
@@ -55,7 +55,7 @@ pub fn format_packet_flags(flags: PacketHeaderFlags) -> String {
     if flags.contains(PacketHeaderFlags::NET_ERROR_DISCONNECT) {
         flag_names.push("NetErrDisc");
     }
-    if flags.contains(PacketHeaderFlags::CICMD_COMMAND) {
+    if flags.contains(PacketHeaderFlags::CICMDCOMMAND) {
         flag_names.push("CICMD");
     }
     if flags.contains(PacketHeaderFlags::TIME_SYNC) {

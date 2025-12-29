@@ -12,7 +12,7 @@ version = "0.1.0"
 edition = "2024"
 
 [workspace.dependencies]
-acprotocol = { git = "https://github.com/amoeba/asheron-rs", default-features = false }
+acprotocol = { git = "https://github.com/amoeba/asheron-rs", rev = "ece40efbed2cb5e9f5f11eacc93eb535c9eb1e07", default-features = false }
 anyhow = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -25,13 +25,13 @@ strip = true
 lto = true
 codegen-units = 1
 
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
 # Even smaller WASM builds
 [profile.release-wasm]
 inherits = "release"
 opt-level = "z"
 panic = "abort"
-
-# The profile that 'dist' will build with
-[profile.dist]
-inherits = "release"
-lto = "thin"

@@ -4,10 +4,11 @@
 //! Asheron's Call network traffic.
 
 use acprotocol::network::packet::PacketHeader;
-pub use acprotocol::network::packet::PacketHeaderFlags;
-use acprotocol::network::reader::BinaryReader;
-use acprotocol::unified::Direction;
+pub use acprotocol::enums::PacketHeaderFlags;
+use acprotocol::readers::{ACReader, ACDataType, read_u32, read_u16};
+use acprotocol::message::Direction;
 use anyhow::{Context, Result};
+use std::io::Cursor;
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use pcap_parser::traits::PcapReaderIterator;
 use pcap_parser::*;
@@ -297,15 +298,16 @@ impl PacketParser {
     ) -> Result<(Vec<ParsedPacket>, Vec<messages::ParsedMessage>)> {
         let mut packets = Vec::new();
         let mut all_messages = Vec::new();
-        let mut reader = BinaryReader::new(data);
+        let mut cursor = Cursor::new(data);
 
-        while reader.remaining() > 0 {
-            let start_pos = reader.position();
+        while (cursor.position() as usize) < data.len() {
+            let start_pos = cursor.position() as usize;
 
-            let header = PacketHeader::parse(&mut reader)?;
+            let header = PacketHeader::read(&mut cursor as &mut dyn ACReader)
+                .map_err(|e| anyhow::anyhow!("{}", e))?;
 
             let packet_end = start_pos + PacketHeader::BASE_SIZE + header.size as usize;
-            let payload_start = reader.position();
+            let payload_start = cursor.position() as usize;
             let payload_size = packet_end.saturating_sub(payload_start);
 
             // Capture raw payload bytes
@@ -332,8 +334,8 @@ impl PacketParser {
             *packet_id += 1;
 
             if header.flags.contains(PacketHeaderFlags::BLOB_FRAGMENTS) {
-                while reader.position() < packet_end && reader.remaining() > 0 {
-                    match self.parse_fragment(&mut reader, direction, timestamp, message_id) {
+                while (cursor.position() as usize) < packet_end && (cursor.position() as usize) < data.len() {
+                    match self.parse_fragment(&mut cursor, direction, timestamp, message_id) {
                         Ok((frag_info, msgs)) => {
                             parsed_packet.fragment = Some(frag_info);
                             for msg in msgs {
@@ -348,9 +350,9 @@ impl PacketParser {
                 }
             }
 
-            let current_pos = reader.position();
+            let current_pos = cursor.position() as usize;
             if current_pos < packet_end {
-                reader.set_position(packet_end);
+                cursor.set_position(packet_end as u64);
             }
 
             packets.push(parsed_packet);
@@ -361,19 +363,25 @@ impl PacketParser {
 
     fn parse_fragment(
         &mut self,
-        reader: &mut BinaryReader,
+        cursor: &mut Cursor<&[u8]>,
         direction: Direction,
         timestamp: f64,
         message_id: &mut usize,
     ) -> Result<(FragmentInfo, Vec<messages::ParsedMessage>)> {
         let mut parsed_messages = Vec::new();
 
-        let sequence = reader.read_u32()?;
-        let id = reader.read_u32()?;
-        let count = reader.read_u16()?;
-        let size = reader.read_u16()?;
-        let index = reader.read_u16()?;
-        let _group = reader.read_u16()?;
+        let sequence = read_u32(&mut *cursor as &mut dyn ACReader)
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
+        let id = read_u32(&mut *cursor as &mut dyn ACReader)
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
+        let count = read_u16(&mut *cursor as &mut dyn ACReader)
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
+        let size = read_u16(&mut *cursor as &mut dyn ACReader)
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
+        let index = read_u16(&mut *cursor as &mut dyn ACReader)
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
+        let _group = read_u16(&mut *cursor as &mut dyn ACReader)
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
 
         if size < 16 {
             anyhow::bail!("Invalid fragment size: {size}");
@@ -381,11 +389,13 @@ impl PacketParser {
 
         let frag_length = size as usize - 16;
 
-        if reader.remaining() < frag_length {
+        let remaining = cursor.get_ref().len() - cursor.position() as usize;
+        if remaining < frag_length {
             anyhow::bail!("Fragment data too short");
         }
 
-        let bytes = reader.read_bytes(frag_length)?;
+        let mut bytes = vec![0u8; frag_length];
+        std::io::Read::read_exact(cursor, &mut bytes)?;
 
         let fragment = self
             .pending_fragments
