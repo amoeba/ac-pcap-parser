@@ -2,8 +2,8 @@ use anyhow::Result;
 use serde::Serialize;
 use std::io::Cursor;
 
+use acprotocol::message::{Direction, MessageKind};
 use acprotocol::readers::ACReader;
-use acprotocol::unified::{Direction, MessageKind};
 
 /// Parsed AC message with all fields decoded
 #[derive(Debug, Clone, Serialize)]
